@@ -121,32 +121,13 @@ fun PlayerBar(
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Box {
-                    IconButton(onClick = { sleepMenuOpen = true }, modifier = Modifier.size(30.dp)) {
-                        Icon(
-                            Icons.Default.Timer,
-                            "Sleep Timer",
-                            tint = if (sleepTimerRemainingMs != null) Accent else TextMute,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = sleepMenuOpen,
-                        onDismissRequest = { sleepMenuOpen = false }
-                    ) {
-                        listOf(5, 10, 15, 30, 45, 60).forEach { m ->
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text("${m} menit", fontSize = 12.sp) },
-                                onClick = { onSleepTimer(m); sleepMenuOpen = false }
-                            )
-                        }
-                        if (sleepTimerRemainingMs != null) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text("Batalkan timer", fontSize = 12.sp, color = ErrorRed) },
-                                onClick = { onCancelSleepTimer(); sleepMenuOpen = false }
-                            )
-                        }
-                    }
+                IconButton(onClick = { sleepMenuOpen = true }, modifier = Modifier.size(30.dp)) {
+                    Icon(
+                        Icons.Default.Timer,
+                        "Sleep Timer",
+                        tint = if (sleepTimerRemainingMs != null) Accent else TextMute,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
                 IconButton(onClick = onOpenEq, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Default.Tune, "EQ", tint = TextMute, modifier = Modifier.size(18.dp))
@@ -224,6 +205,38 @@ fun PlayerBar(
                 Text(formatMs(durationMs), color = TextMute, fontSize = 10.sp, modifier = Modifier.width(36.dp))
             }
         }
+        if (sleepMenuOpen) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { sleepMenuOpen = false }) {
+                androidx.compose.material3.Surface(
+                    color = BgPanel,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(Modifier.padding(16.dp).fillMaxWidth()) {
+                        Text("Sleep Timer", color = TextMain, fontSize = 15.sp)
+                        Spacer(Modifier.height(10.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(5, 10, 15).forEach { m ->
+                                TimerChip(m.toString() + " m", Modifier.weight(1f)) { onSleepTimer(m); sleepMenuOpen = false }
+                            }
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(30, 45, 60).forEach { m ->
+                                TimerChip(m.toString() + " m", Modifier.weight(1f)) { onSleepTimer(m); sleepMenuOpen = false }
+                            }
+                        }
+                        if (sleepTimerRemainingMs != null) {
+                            Spacer(Modifier.height(10.dp))
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { onCancelSleepTimer(); sleepMenuOpen = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Batalkan timer", color = ErrorRed, fontSize = 13.sp) }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -288,3 +301,17 @@ private fun ThinSlider(
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.clickable(interactionSource = MutableInteractionSource(), indication = null, onClick = onClick)
 
+
+@Composable
+private fun TimerChip(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    androidx.compose.foundation.layout.Box(
+        modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(BgActive)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = TextMain, fontSize = 13.sp)
+    }
+}

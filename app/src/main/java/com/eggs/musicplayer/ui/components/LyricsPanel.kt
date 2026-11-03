@@ -188,49 +188,35 @@ fun LyricsPanel(
             }
         }
 
-        // Bottom bar: semua opsi tampil sebagai chip
-        HorizontalDivider(thickness = 1.dp, color = Border)
-        LazyRow(
-            Modifier.fillMaxWidth().background(Bg).padding(horizontal = 6.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Bottom bar: 2 grup horizontal, label kecil di atas tiap grup
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(Bg)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.Bottom
         ) {
-            item {
-                LyricsChip(
-                    label = "LRCLIB",
-                    selected = state.provider == LyricsProvider.Lrclib,
-                    onClick = { onSetProvider(LyricsProvider.Lrclib) }
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Sumber", color = TextMute, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LyricsChip("LRCLIB", state.provider == LyricsProvider.Lrclib) { onSetProvider(LyricsProvider.Lrclib) }
+                    LyricsChip("ovh", state.provider == LyricsProvider.LyricsOvh) { onSetProvider(LyricsProvider.LyricsOvh) }
+                    LyricsChip("Manual", state.provider == LyricsProvider.Manual) { onSetProvider(LyricsProvider.Manual) }
+                }
             }
-            item {
-                LyricsChip(
-                    label = "ovh",
-                    selected = state.provider == LyricsProvider.LyricsOvh,
-                    onClick = { onSetProvider(LyricsProvider.LyricsOvh) }
-                )
-            }
-            item {
-                LyricsChip(
-                    label = "Manual",
-                    selected = state.provider == LyricsProvider.Manual,
-                    onClick = { onSetProvider(LyricsProvider.Manual) }
-                )
-            }
-            item {
-                LyricsChip(
-                    label = "Google",
-                    selected = state.translateProvider == TranslateProvider.Google,
-                    onClick = { onSetTranslateProvider(TranslateProvider.Google) }
-                )
-            }
-            item {
-                LyricsChip(
-                    label = "MyMemory",
-                    selected = state.translateProvider == TranslateProvider.MyMemory,
-                    onClick = { onSetTranslateProvider(TranslateProvider.MyMemory) }
-                )
+            Box(Modifier.width(12.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Translate", color = TextMute, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LyricsChip("Google", state.translateProvider == TranslateProvider.Google) { onSetTranslateProvider(TranslateProvider.Google) }
+                    LyricsChip("MyMemory", state.translateProvider == TranslateProvider.MyMemory) { onSetTranslateProvider(TranslateProvider.MyMemory) }
+                }
             }
         }
+
     }
 }
 
@@ -252,4 +238,9 @@ private fun CenterText(t: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(t, color = TextMute, fontSize = 13.sp)
     }
+}
+
+@Composable
+private fun GroupLabel(text: String) {
+    Text(text, color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
 }

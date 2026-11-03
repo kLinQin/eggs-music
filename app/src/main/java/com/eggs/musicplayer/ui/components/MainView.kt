@@ -84,7 +84,8 @@ fun MainView(
                 MainTab.Playlist -> HeroBox("Daftar", "Playlist", "${playlists.size} playlist", Icons.Default.QueueMusic)
                 MainTab.Lyrics -> {
                     val cur = tracks.firstOrNull { it.id == currentTrackId }
-                    HeroBox("Lirik", cur?.title ?: "Pilih lagu", cur?.artist ?: "—", Icons.Default.MusicNote)
+                    HeroBox("Lirik", cur?.title ?: "Pilih lagu", cur?.artist ?: "—", Icons.Default.MusicNote,
+                        coverPaths = listOfNotNull(cur?.coverUri).take(1))
                 }
                 MainTab.Tips -> HeroBox("Bantuan", "Tips & Panduan", "Panduan lengkap Egg Music", Icons.Default.Lightbulb)
                 MainTab.Tracks -> HeroBox(
@@ -141,20 +142,31 @@ private fun HeroBox(label: String, title: String, sub: String, icon: androidx.co
                 .background(Brush.linearGradient(listOf(Accent, Color(0xFF0D6E30)))),
             contentAlignment = Alignment.Center
         ) {
-            if (coverPaths.isNotEmpty()) {
-                val four = (coverPaths + List(4) { "" }).take(4)
-                Column(Modifier.fillMaxSize()) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        CoverCell(four[0], Modifier.weight(1f).fillMaxHeight())
-                        CoverCell(four[1], Modifier.weight(1f).fillMaxHeight())
-                    }
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        CoverCell(four[2], Modifier.weight(1f).fillMaxHeight())
-                        CoverCell(four[3], Modifier.weight(1f).fillMaxHeight())
+            when {
+                coverPaths.size == 1 -> {
+                    AsyncImage(
+                        model = File(coverPaths.first()),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                coverPaths.size >= 2 -> {
+                    val four = (coverPaths + List(4) { "" }).take(4)
+                    Column(Modifier.fillMaxSize()) {
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
+                            CoverCell(four[0], Modifier.weight(1f).fillMaxHeight())
+                            CoverCell(four[1], Modifier.weight(1f).fillMaxHeight())
+                        }
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
+                            CoverCell(four[2], Modifier.weight(1f).fillMaxHeight())
+                            CoverCell(four[3], Modifier.weight(1f).fillMaxHeight())
+                        }
                     }
                 }
-            } else {
-                Icon(icon, null, tint = Color(0x80000000), modifier = Modifier.size(40.dp))
+                else -> {
+                    Icon(icon, null, tint = Color(0x80000000), modifier = Modifier.size(40.dp))
+                }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {

@@ -21,3 +21,6 @@ Thumbs.db
 patch.js
 lirik_web.txt
 *.log
+
+# Release build output
+app/release/
