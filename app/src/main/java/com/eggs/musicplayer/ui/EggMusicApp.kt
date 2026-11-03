@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eggs.musicplayer.MainViewModel
 import com.eggs.musicplayer.model.Playlist
+import com.eggs.musicplayer.ui.components.EqualizerSheet
 import com.eggs.musicplayer.ui.components.Header
 import com.eggs.musicplayer.ui.components.MainView
 import com.eggs.musicplayer.ui.components.LyricsPanel
@@ -54,6 +55,7 @@ fun EggMusicApp(
             val lyricsState by vm.lyrics.collectAsStateWithLifecycle()
             val appSettings by vm.appSettings.collectAsStateWithLifecycle()
             var showSettings by remember { mutableStateOf(false) }
+            var showEq by remember { mutableStateOf(false) }
             var shuffle by remember { mutableStateOf(false) }
             var repeat by remember { mutableStateOf(RepeatMode.Off) }
             var volume by remember { mutableStateOf(1f) }
@@ -109,6 +111,20 @@ fun EggMusicApp(
                         )
                     }
                 }
+                if (showEq) {
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
+                    val app = ctx.applicationContext as? com.eggs.musicplayer.App
+                    if (app != null) {
+                        val eqState by app.equalizerState.collectAsStateWithLifecycle()
+                        EqualizerSheet(
+                            state = eqState,
+                            presets = app.equalizerController.presets,
+                            onPreset = { name -> app.equalizerController.applyPreset(name) },
+                            onBandChange = { idx, lv -> app.equalizerController.setBandLevel(idx, lv) },
+                            onDismiss = { showEq = false }
+                        )
+                    }
+                }
                 if (showSettings) {
                     SettingsSheet(
                         settings = appSettings,
@@ -155,7 +171,7 @@ fun EggMusicApp(
                     },
                     onVolume = { volume = it; isMuted = false },
                     onToggleMute = { isMuted = !isMuted },
-                    onOpenEq = {}
+                    onOpenEq = { showEq = true }
                 )
             }
         }

@@ -3,6 +3,7 @@ package com.eggs.musicplayer.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eggs.musicplayer.model.Track
@@ -66,21 +68,36 @@ fun PlayerBar(
     onOpenEq: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().background(Bg).padding(horizontal = 10.dp, vertical = 6.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Bg)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         HorizontalDivider(thickness = 1.dp, color = Border, modifier = Modifier.padding(bottom = 6.dp))
 
-        // ===== Baris 1: info (kiri) + volume (kanan) =====
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(44.dp)) {
-            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // ===== Baris 1: info (kiri) | EQ + mute + volume (kanan) =====
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Box(
                     modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(20.dp)) }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(track?.title ?: "Tidak ada lagu", color = TextMain, fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(track?.artist ?: "—", color = TextMute, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        track?.title ?: "Tidak ada lagu",
+                        color = TextMain, fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        track?.artist ?: "—",
+                        color = TextMute, fontSize = 11.sp,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -88,7 +105,10 @@ fun PlayerBar(
                     Icon(Icons.Default.Tune, "EQ", tint = TextMute, modifier = Modifier.size(18.dp))
                 }
                 IconButton(onClick = onToggleMute, modifier = Modifier.size(30.dp)) {
-                    Icon(if (isMuted || volume == 0f) Icons.Default.VolumeOff else Icons.Default.VolumeUp, "Mute", tint = TextMute, modifier = Modifier.size(18.dp))
+                    Icon(
+                        if (isMuted || volume == 0f) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                        "Mute", tint = TextMute, modifier = Modifier.size(18.dp)
+                    )
                 }
                 ThinSlider(
                     value = if (isMuted) 0f else volume,
@@ -100,36 +120,62 @@ fun PlayerBar(
 
         Spacer(Modifier.height(6.dp))
 
-        // ===== Baris 2: controls + seek =====
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().height(44.dp)) {
-            IconButton(onClick = onToggleShuffle, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.Shuffle, "Shuffle", tint = if (shuffle) Accent else TextMute, modifier = Modifier.size(18.dp))
-            }
-            IconButton(onClick = onPrev, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.SkipPrevious, "Prev", tint = TextMute, modifier = Modifier.size(20.dp))
-            }
-            Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Accent).clickableNoRipple(onToggle),
-                contentAlignment = Alignment.Center
+        // ===== Baris 2: controls di tengah + seek di bawah =====
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    if (isPlaying) "Pause" else "Play", tint = Color.Black, modifier = Modifier.size(22.dp))
+                IconButton(onClick = onToggleShuffle, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Shuffle, "Shuffle", tint = if (shuffle) Accent else TextMute, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onPrev, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.SkipPrevious, "Prev", tint = TextMute, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Accent).clickableNoRipple(onToggle),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        if (isPlaying) "Pause" else "Play",
+                        tint = Color.Black, modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onNext, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.SkipNext, "Next", tint = TextMute, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onCycleRepeat, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        if (repeat == RepeatMode.One) Icons.Default.RepeatOne else Icons.Default.Repeat,
+                        "Repeat",
+                        tint = if (repeat != RepeatMode.Off) Accent else TextMute,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
-            IconButton(onClick = onNext, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.SkipNext, "Next", tint = TextMute, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(4.dp))
+            // Seek full width di bawah controls
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(formatMs(positionMs), color = TextMute, fontSize = 10.sp, modifier = Modifier.width(36.dp))
+                ThinSlider(
+                    value = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f,
+                    onValueChange = { onSeek((it * durationMs).toLong()) },
+                    modifier = Modifier.weight(1f).height(20.dp)
+                )
+                Text(formatMs(durationMs), color = TextMute, fontSize = 10.sp, modifier = Modifier.width(36.dp))
             }
-            IconButton(onClick = onCycleRepeat, modifier = Modifier.size(30.dp)) {
-                Icon(if (repeat == RepeatMode.One) Icons.Default.RepeatOne else Icons.Default.Repeat,
-                    "Repeat", tint = if (repeat != RepeatMode.Off) Accent else TextMute, modifier = Modifier.size(18.dp))
-            }
-            Spacer(Modifier.width(2.dp))
-            Text(formatMs(positionMs), color = TextMute, fontSize = 10.sp, modifier = Modifier.width(32.dp))
-            ThinSlider(
-                value = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f,
-                onValueChange = { onSeek((it * durationMs).toLong()) },
-                modifier = Modifier.weight(1f).height(20.dp)
-            )
-            Text(formatMs(durationMs), color = TextMute, fontSize = 10.sp, modifier = Modifier.width(32.dp))
         }
     }
 }
@@ -155,12 +201,13 @@ private fun ThinSlider(
                     onValueChange(x / widthPx)
                 }
             }
-            .clickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null
-            ) { /* handled by drag */ }
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val x = offset.x.coerceIn(0f, widthPx.toFloat())
+                    onValueChange(x / widthPx)
+                }
+            }
     ) {
-        // track
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -169,7 +216,6 @@ private fun ThinSlider(
                 .clip(RoundedCornerShape(2.dp))
                 .background(Color(0xFF4D4D4D))
         )
-        // filled part
         Box(
             modifier = Modifier
                 .fillMaxWidth(value.coerceIn(0f, 1f))
@@ -178,12 +224,11 @@ private fun ThinSlider(
                 .clip(RoundedCornerShape(2.dp))
                 .background(Accent)
         )
-        // thumb
         Box(
             modifier = Modifier
                 .offset {
                     val x = (value.coerceIn(0f, 1f) * widthPx - thumbPx / 2f).toInt()
-                    androidx.compose.ui.unit.IntOffset(x, 0)
+                    IntOffset(x, 0)
                 }
                 .size(thumbDp)
                 .align(Alignment.CenterStart)
