@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Rounded background (hijau) -->
+    <path
+        android:fillColor="#15803D"
+        android:pathData="M14,0 H50 A14,14 0 0 1 64,14 V50 A14,14 0 0 1 50,64 H14 A14,14 0 0 1 0,50 V14 A14,14 0 0 1 14,0 Z" />
+
+    <!-- Egg body dengan gradient putih -->
+    <path
+        android:strokeColor="#D4C5A8"
+        android:strokeWidth="1.5"
+        android:pathData="M32,12 C42,12 50,22 50,34 C50,46 42,54 32,54 C22,54 14,46 14,34 C14,22 22,12 32,12 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="32" android:startY="12"
+                android:endX="32" android:endY="54">
+                <item android:offset="0" android:color="#FFFFFF"/>
+                <item android:offset="1" android:color="#F0E6D2"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Yolk kiri -->
+    <path
+        android:pathData="M26,30.5 A5.5,5.5 0 1 1 26,41.5 A5.5,5.5 0 1 1 26,30.5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="26" android:startY="30.5"
+                android:endX="26" android:endY="41.5">
+                <item android:offset="0" android:color="#FBBF24"/>
+                <item android:offset="1" android:color="#F59E0B"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M24.5,33 A1.5,1.5 0 1 1 24.5,36 A1.5,1.5 0 1 1 24.5,33 Z" />
+
+    <!-- Yolk kanan -->
+    <path
+        android:pathData="M38,30.5 A5.5,5.5 0 1 1 38,41.5 A5.5,5.5 0 1 1 38,30.5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="38" android:startY="30.5"
+                android:endX="38" android:endY="41.5">
+                <item android:offset="0" android:color="#FBBF24"/>
+                <item android:offset="1" android:color="#F59E0B"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M36.5,33 A1.5,1.5 0 1 1 36.5,36 A1.5,1.5 0 1 1 36.5,33 Z" />
+</vector>

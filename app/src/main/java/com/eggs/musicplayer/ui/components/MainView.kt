@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import java.io.File
 import com.eggs.musicplayer.model.Playlist
 import com.eggs.musicplayer.lyrics.LyricsMode
 import com.eggs.musicplayer.lyrics.LyricsProvider
@@ -47,6 +50,7 @@ fun MainView(
     onRenamePlaylist: (Playlist, String) -> Unit,
     onDeletePlaylist: (Playlist) -> Unit,
     onPlay: (Track) -> Unit,
+    onDeleteTrack: (Track) -> Unit,
     lyricsState: LyricsUiState,
     onLyricsMode: (LyricsMode) -> Unit,
     onLyricsProvider: (LyricsProvider) -> Unit,
@@ -87,7 +91,8 @@ fun MainView(
                     "Playlist",
                     playlist?.name ?: "Library",
                     "${tracks.size} lagu" + (if (tracks.isNotEmpty()) " • ${formatMs(tracks.sumOf { it.durationMs })}" else ""),
-                    Icons.Default.MusicNote
+                    Icons.Default.MusicNote,
+                    coverPaths = tracks.mapNotNull { it.coverUri }.take(4)
                 )
             }
         }
@@ -106,10 +111,10 @@ fun MainView(
         HorizontalDivider(thickness = 1.dp, color = Border)
         // Content
         when (tab) {
-            MainTab.Playlist -> PlaylistTab(playlists, playlist?.id, onSelectPlaylist, onRenamePlaylist, onDeletePlaylist) {
+            MainTab.Playlist -> PlaylistTab(playlists, tracks, playlist?.id, onSelectPlaylist, onRenamePlaylist, onDeletePlaylist) {
                 tab = MainTab.Tracks
             }
-            MainTab.Tracks -> TracksTab(tracks, currentTrackId, isPlaying, onPlay)
+            MainTab.Tracks -> TracksTab(tracks, currentTrackId, isPlaying, onPlay, onDeleteTrack)
             MainTab.Lyrics -> LyricsPanel(
                 state = lyricsState,
                 currentTrackTitle = tracks.firstOrNull { it.id == currentTrackId }?.title,
@@ -123,21 +128,35 @@ fun MainView(
                 onApplySearch = onApplySearch,
                 onSearchQueryChange = onSearchQueryChange
             )
-            MainTab.Tips -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Tips — coming soon", color = TextMute, fontSize = 13.sp)
-            }
+            MainTab.Tips -> TipsScreen()
         }
     }
 }
 
 @Composable
-private fun HeroBox(label: String, title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun HeroBox(label: String, title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, coverPaths: List<String> = emptyList()) {
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             modifier = Modifier.size(88.dp).clip(RoundedCornerShape(8.dp))
                 .background(Brush.linearGradient(listOf(Accent, Color(0xFF0D6E30)))),
             contentAlignment = Alignment.Center
-        ) { Icon(icon, null, tint = Color(0x80000000), modifier = Modifier.size(40.dp)) }
+        ) {
+            if (coverPaths.isNotEmpty()) {
+                val four = (coverPaths + List(4) { "" }).take(4)
+                Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                        CoverCell(four[0], Modifier.weight(1f).fillMaxHeight())
+                        CoverCell(four[1], Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                        CoverCell(four[2], Modifier.weight(1f).fillMaxHeight())
+                        CoverCell(four[3], Modifier.weight(1f).fillMaxHeight())
+                    }
+                }
+            } else {
+                Icon(icon, null, tint = Color(0x80000000), modifier = Modifier.size(40.dp))
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
             Text(label.uppercase(), color = TextMute, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text(title, color = TextMain, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -147,9 +166,28 @@ private fun HeroBox(label: String, title: String, sub: String, icon: androidx.co
 }
 
 @Composable
+private fun CoverCell(path: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.background(Color(0xFF0D0D0D)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (path.isNotBlank()) {
+            AsyncImage(
+                model = File(path),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+@Composable
 private fun TabBtn(label: String, active: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp), modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.height(36.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
             Text(label, color = if (active) TextMain else TextMute, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
         Box(
@@ -161,7 +199,7 @@ private fun TabBtn(label: String, active: Boolean, modifier: Modifier = Modifier
 
 @Composable
 private fun PlaylistTab(
-    playlists: List<Playlist>, currentId: String?,
+    playlists: List<Playlist>, tracks: List<Track>, currentId: String?,
     onSelect: (String) -> Unit, onRename: (Playlist, String) -> Unit, onDelete: (Playlist) -> Unit,
     onPick: () -> Unit
 ) {
@@ -183,10 +221,30 @@ private fun PlaylistTab(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    if (pl.isSystem) Icons.Default.LibraryMusic else Icons.Default.QueueMusic,
-                    null, tint = if (current) Accent else TextMute, modifier = Modifier.size(16.dp)
-                )
+                // Cover kotak 48dp dari track pertama di playlist ini
+                val coverPath = if (pl.isSystem) {
+                    tracks.firstOrNull { it.coverUri != null }?.coverUri
+                } else {
+                    tracks.firstOrNull { it.folderId == pl.id && it.coverUri != null }?.coverUri
+                }
+                Box(
+                    Modifier.size(44.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (coverPath != null) {
+                        AsyncImage(
+                            model = File(coverPath),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            if (pl.isSystem) Icons.Default.LibraryMusic else Icons.Default.QueueMusic,
+                            null, tint = if (current) Accent else TextMute, modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
                 if (editing?.id == pl.id) {
                     androidx.compose.foundation.text.BasicTextField(
                         value = text, onValueChange = { text = it }, singleLine = true,
@@ -218,36 +276,92 @@ private fun PlaylistTab(
 }
 
 @Composable
-private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit) {
+private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit, onDeleteTrack: (Track) -> Unit) {
     if (tracks.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Playlist ini masih kosong.", color = TextDim, fontSize = 13.sp)
         }
         return
     }
-    LazyColumn(Modifier.fillMaxSize()) {
-        itemsIndexed(tracks, key = { _, t -> t.id }) { idx, t ->
+    Column(Modifier.fillMaxSize()) {
+        // Header tabel sticky
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .background(BgElev)
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("#", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.width(20.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, letterSpacing = 0.5.sp)
+            Box(Modifier.size(36.dp))
+            Text("Judul", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f), letterSpacing = 0.5.sp)
+            Text("Bitrate", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.width(56.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, letterSpacing = 0.5.sp)
+            Text("Durasi", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.width(34.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, letterSpacing = 0.5.sp)
+            Spacer(Modifier.width(28.dp))
+        }
+        HorizontalDivider(thickness = 1.dp, color = Border)
+        LazyColumn(Modifier.fillMaxSize()) {
+            itemsIndexed(tracks, key = { _, t -> t.id }) { idx, t ->
             val active = t.id == currentId
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { onPlay(t) }
                     .background(if (active) BgHover else Color.Transparent)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(Modifier.width(24.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(20.dp), contentAlignment = Alignment.Center) {
                     if (active && isPlaying) {
                         Box(Modifier.size(10.dp).clip(CircleShape).background(Accent))
                     } else {
-                        Text("${idx + 1}", color = if (active) Accent else TextMute, fontSize = 13.sp)
+                        Text("${idx + 1}", color = if (active) Accent else TextMute, fontSize = 12.sp)
+                    }
+                }
+                // Cover kecil
+                Box(
+                    Modifier.size(36.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)).background(BgPanel),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val cp = t.coverUri
+                    if (!cp.isNullOrBlank()) {
+                        AsyncImage(
+                            model = File(cp),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(18.dp))
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(t.title, color = if (active) Accent else TextMain, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (!t.artist.isNullOrBlank()) Text(t.artist, color = TextMute, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Text(formatMs(t.durationMs), color = TextMute, fontSize = 12.sp)
+                Text(
+                    if (t.bitrate > 0) "${t.bitrate / 1000} kbps" else "—",
+                    color = TextMute, fontSize = 11.sp,
+                    modifier = Modifier.width(56.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                Text(
+                    formatMs(t.durationMs),
+                    color = TextMute, fontSize = 11.sp,
+                    modifier = Modifier.width(34.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                androidx.compose.material3.IconButton(
+                    onClick = { onDeleteTrack(t) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(Icons.Default.Delete, "Hapus", tint = TextDim, modifier = Modifier.size(16.dp))
+                }
             }
+        }
         }
     }
 }

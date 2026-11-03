@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -42,6 +43,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.eggs.musicplayer.model.Track
 import com.eggs.musicplayer.ui.theme.*
 
@@ -65,8 +69,12 @@ fun PlayerBar(
     onCycleRepeat: () -> Unit,
     onVolume: (Float) -> Unit,
     onToggleMute: () -> Unit,
-    onOpenEq: () -> Unit
+    onOpenEq: () -> Unit,
+    sleepTimerRemainingMs: Long? = null,
+    onSleepTimer: (Int) -> Unit = {},
+    onCancelSleepTimer: () -> Unit = {}
 ) {
+    var sleepMenuOpen by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -85,7 +93,19 @@ fun PlayerBar(
                 Box(
                     modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(20.dp)) }
+                ) {
+                    val coverPath = track?.coverUri
+                    if (!coverPath.isNullOrBlank()) {
+                        AsyncImage(
+                            model = coverPath,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(20.dp))
+                    }
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         track?.title ?: "Tidak ada lagu",
@@ -101,6 +121,33 @@ fun PlayerBar(
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Box {
+                    IconButton(onClick = { sleepMenuOpen = true }, modifier = Modifier.size(30.dp)) {
+                        Icon(
+                            Icons.Default.Timer,
+                            "Sleep Timer",
+                            tint = if (sleepTimerRemainingMs != null) Accent else TextMute,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = sleepMenuOpen,
+                        onDismissRequest = { sleepMenuOpen = false }
+                    ) {
+                        listOf(5, 10, 15, 30, 45, 60).forEach { m ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("${m} menit", fontSize = 12.sp) },
+                                onClick = { onSleepTimer(m); sleepMenuOpen = false }
+                            )
+                        }
+                        if (sleepTimerRemainingMs != null) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("Batalkan timer", fontSize = 12.sp, color = ErrorRed) },
+                                onClick = { onCancelSleepTimer(); sleepMenuOpen = false }
+                            )
+                        }
+                    }
+                }
                 IconButton(onClick = onOpenEq, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Default.Tune, "EQ", tint = TextMute, modifier = Modifier.size(18.dp))
                 }

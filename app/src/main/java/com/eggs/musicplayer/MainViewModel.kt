@@ -66,6 +66,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _appSettings = MutableStateFlow(settingsRepo.load())
     val appSettings: StateFlow<AppSettings> = _appSettings.asStateFlow()
 
+    private val _sleepTimerRemainingMs = MutableStateFlow<Long?>(null)
+    val sleepTimerRemainingMs: StateFlow<Long?> = _sleepTimerRemainingMs.asStateFlow()
+    private var sleepTimerJob: Job? = null
+
     private val _lyrics = MutableStateFlow(LyricsUiState())
     val lyrics: StateFlow<LyricsUiState> = _lyrics.asStateFlow()
     private var lyricsJob: Job? = null
@@ -106,6 +110,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
         playerController.release()
         lyricsJob?.cancel()
+        sleepTimerJob?.cancel()
     }
 
     // ============= SETTINGS =============
@@ -366,6 +371,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val r = runCatching { lyricsRepo.fetchLyricsById(item.id) }.getOrNull()
             _lyrics.update { it.copy(loading = false, result = r, error = if (r == null) "Gagal memuat lirik pilihan" else null) }
             if (r != null) maybeTranslate()
+        }
+    }
+
+    // ============= DELETE TRACK =============
+    fun deleteTrack(t: Track) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                trackDao.deleteByUri(t.uri)
+                runCatching {
+                    java.io.File(getApplication<Application>().filesDir, "covers/${t.id}.jpg").delete()
+                }
+            }
+            if (playerController.currentTrack.value?.id == t.id) {
+                playerController.toggle()
+            }
+        }
+    }
+
+    // ============= SLEEP TIMER =============
+    fun startSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        val totalMs = minutes * 60_000L
+        _sleepTimerRemainingMs.value = totalMs
+        sleepTimerJob = viewModelScope.launch {
+            val start = System.currentTimeMillis()
+            while (true) {
+                val remaining = totalMs - (System.currentTimeMillis() - start)
+                if (remaining <= 0L) {
+                    _sleepTimerRemainingMs.value = null
+                    if (playerController.isPlaying.value) playerController.toggle()
+                    return@launch
+                }
+                _sleepTimerRemainingMs.value = remaining
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+    }
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        _sleepTimerRemainingMs.value = null
+    }
+
+    // ============= COVERS =============
+    fun refreshAllCovers() {
+        viewModelScope.launch {
+            val list = tracks.value.filter { it.coverUri.isNullOrBlank() }
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+                for (t in list) {
+                    val path = scanner.refreshCoverFor(t)
+                    if (path != null) trackDao.insertAll(listOf(t.copy(coverUri = path)))
+                }
+            }
         }
     }
 

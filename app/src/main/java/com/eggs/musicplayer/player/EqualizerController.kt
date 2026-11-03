@@ -2,6 +2,8 @@ package com.eggs.musicplayer.player
 
 import android.media.audiofx.Equalizer
 import android.util.Log
+import android.content.Context
+import com.eggs.musicplayer.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,8 @@ data class EqState(
     }
 }
 
-class EqualizerController {
+class EqualizerController(private val appContext: Context) {
+    private val prefs = SettingsRepository(appContext)
     private var eq: Equalizer? = null
     private var sessionId: Int = -1
 
@@ -55,6 +58,17 @@ class EqualizerController {
                 currentLevelsMb = current,
                 presetName = "Flat"
             )
+            // Restore dari prefs
+            val savedPreset = prefs.loadEqPreset()
+            val savedLevels = prefs.loadEqLevels()
+            if (savedLevels.size == n) {
+                runCatching {
+                    savedLevels.forEachIndexed { i, lv -> e.setBandLevel(i.toShort(), lv) }
+                    _state.update { it.copy(currentLevelsMb = savedLevels, presetName = savedPreset) }
+                }
+            } else if (savedPreset != "Flat") {
+                applyPreset(savedPreset)
+            }
             Log.d("EqController", "attached session=$sessionId bands=$n range=${range[0]}..${range[1]}")
         } catch (t: Throwable) {
             Log.w("EqController", "attach failed: ${t.message}")
@@ -71,6 +85,8 @@ class EqualizerController {
             val newLevels = _state.value.currentLevelsMb.toMutableList()
             newLevels[index] = levelMb
             _state.update { it.copy(currentLevelsMb = newLevels, presetName = "Custom") }
+            prefs.saveEqLevels(newLevels)
+            prefs.saveEqPreset("Custom")
         }.onFailure { Log.w("EqController", "setBandLevel: ${it.message}") }
     }
 
@@ -124,6 +140,8 @@ class EqualizerController {
         runCatching {
             levels.forEachIndexed { i, lv -> e.setBandLevel(i.toShort(), lv) }
             _state.update { it.copy(currentLevelsMb = levels, presetName = name) }
+            prefs.saveEqLevels(levels)
+            prefs.saveEqPreset(name)
         }.onFailure { Log.w("EqController", "applyPreset: ${it.message}") }
     }
 

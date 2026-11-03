@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -186,56 +188,62 @@ fun LyricsPanel(
             }
         }
 
-        // Bottom bar
+        // Bottom bar: semua opsi tampil sebagai chip
         HorizontalDivider(thickness = 1.dp, color = Border)
-        Row(
-            Modifier.fillMaxWidth().background(BgPanel).padding(horizontal = 8.dp, vertical = 6.dp),
+        LazyRow(
+            Modifier.fillMaxWidth().background(Bg).padding(horizontal = 6.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box {
-                AssistChip(
-                    onClick = onToggleProviderPopup,
-                    label = {
-                        Text(
-                            when (state.provider) {
-                                LyricsProvider.Lrclib -> "LRCLIB"
-                                LyricsProvider.LyricsOvh -> "lyrics.ovh"
-                                LyricsProvider.Manual -> "Manual"
-                                null -> "Pilih sumber"
-                            },
-                            fontSize = 11.sp
-                        )
-                    },
-                    leadingIcon = { Icon(Icons.Default.MoreVert, null, tint = TextMute, modifier = Modifier.size(14.dp)) }
+            item {
+                LyricsChip(
+                    label = "LRCLIB",
+                    selected = state.provider == LyricsProvider.Lrclib,
+                    onClick = { onSetProvider(LyricsProvider.Lrclib) }
                 )
-                DropdownMenu(expanded = state.showProviderPopup, onDismissRequest = onToggleProviderPopup) {
-                    DropdownMenuItem(text = { Text("LRCLIB", fontSize = 12.sp) }, onClick = { onSetProvider(LyricsProvider.Lrclib) })
-                    DropdownMenuItem(text = { Text("lyrics.ovh", fontSize = 12.sp) }, onClick = { onSetProvider(LyricsProvider.LyricsOvh) })
-                    DropdownMenuItem(text = { Text("Manual", fontSize = 12.sp) }, onClick = { onSetProvider(LyricsProvider.Manual) })
-                }
             }
-            Box {
-                AssistChip(
-                    onClick = onToggleTranslatePopup,
-                    label = {
-                        Text(
-                            when (state.translateProvider) {
-                                TranslateProvider.Google -> "Google"
-                                TranslateProvider.MyMemory -> "MyMemory"
-                            },
-                            fontSize = 11.sp
-                        )
-                    }
+            item {
+                LyricsChip(
+                    label = "ovh",
+                    selected = state.provider == LyricsProvider.LyricsOvh,
+                    onClick = { onSetProvider(LyricsProvider.LyricsOvh) }
                 )
-                DropdownMenu(expanded = state.showTranslatePopup, onDismissRequest = onToggleTranslatePopup) {
-                    DropdownMenuItem(text = { Text("Google", fontSize = 12.sp) }, onClick = { onSetTranslateProvider(TranslateProvider.Google) })
-                    DropdownMenuItem(text = { Text("MyMemory", fontSize = 12.sp) }, onClick = { onSetTranslateProvider(TranslateProvider.MyMemory) })
-                }
             }
-            Spacer(Modifier.weight(1f))
-            Text(currentTrackTitle ?: "—", color = TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            item {
+                LyricsChip(
+                    label = "Manual",
+                    selected = state.provider == LyricsProvider.Manual,
+                    onClick = { onSetProvider(LyricsProvider.Manual) }
+                )
+            }
+            item {
+                LyricsChip(
+                    label = "Google",
+                    selected = state.translateProvider == TranslateProvider.Google,
+                    onClick = { onSetTranslateProvider(TranslateProvider.Google) }
+                )
+            }
+            item {
+                LyricsChip(
+                    label = "MyMemory",
+                    selected = state.translateProvider == TranslateProvider.MyMemory,
+                    onClick = { onSetTranslateProvider(TranslateProvider.MyMemory) }
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun LyricsChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (selected) Accent else BgActive)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(label, color = if (selected) Color.Black else TextMain, fontSize = 11.sp)
     }
 }
 

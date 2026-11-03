@@ -33,6 +33,7 @@ fun EggMusicApp(
     onPickFolder: () -> Unit,
     onPickFiles: () -> Unit
 ) {
+
     EggMusicTheme {
         Surface(color = Bg, modifier = Modifier.fillMaxSize()) {
             val tracks by vm.tracks.collectAsStateWithLifecycle()
@@ -54,12 +55,18 @@ fun EggMusicApp(
             }
             val lyricsState by vm.lyrics.collectAsStateWithLifecycle()
             val appSettings by vm.appSettings.collectAsStateWithLifecycle()
+            val sleepRemaining by vm.sleepTimerRemainingMs.collectAsStateWithLifecycle()
             var showSettings by remember { mutableStateOf(false) }
             var showEq by remember { mutableStateOf(false) }
-            var shuffle by remember { mutableStateOf(false) }
-            var repeat by remember { mutableStateOf(RepeatMode.Off) }
-            var volume by remember { mutableStateOf(1f) }
+            val appContext = androidx.compose.ui.platform.LocalContext.current
+            val prefs = remember { com.eggs.musicplayer.data.SettingsRepository(appContext) }
+            var shuffle by remember { mutableStateOf(prefs.loadShuffle()) }
+            var repeat by remember { mutableStateOf(runCatching { RepeatMode.valueOf(prefs.loadRepeat()) }.getOrDefault(RepeatMode.Off)) }
+            var volume by remember { mutableStateOf(prefs.loadVolume()) }
             var isMuted by remember { mutableStateOf(false) }
+            LaunchedEffect(shuffle) { prefs.saveShuffle(shuffle) }
+            LaunchedEffect(repeat) { prefs.saveRepeat(repeat.name) }
+            LaunchedEffect(volume) { prefs.saveVolume(volume) }
 
             val currentPlaylist = playlists.firstOrNull { it.id == currentPlaylistId }
                 ?: playlists.firstOrNull()
@@ -97,7 +104,7 @@ fun EggMusicApp(
                             onSelectPlaylist = { currentPlaylistId = it },
                             onRenamePlaylist = { pl, name -> vm.renamePlaylist(pl, name) },
                             onDeletePlaylist = { pl -> vm.deletePlaylist(pl) },
-                            onPlay = { t -> vm.playerController.play(t) },
+                            onPlay = { t -> vm.playerController.play(t) }, onDeleteTrack = { t -> vm.deleteTrack(t) },
                                 lyricsState = lyricsState,
                                 onLyricsMode = vm::setLyricsMode,
                                 onLyricsProvider = vm::setLyricsProvider,
@@ -129,6 +136,7 @@ fun EggMusicApp(
                     SettingsSheet(
                         settings = appSettings,
                         onChange = vm::updateAppSettings,
+                        onRefreshCovers = { vm.refreshAllCovers() },
                         onDismiss = { showSettings = false }
                     )
                 }
@@ -171,7 +179,10 @@ fun EggMusicApp(
                     },
                     onVolume = { volume = it; isMuted = false },
                     onToggleMute = { isMuted = !isMuted },
-                    onOpenEq = { showEq = true }
+                    onOpenEq = { showEq = true },
+                    sleepTimerRemainingMs = sleepRemaining,
+                    onSleepTimer = { minutes -> vm.startSleepTimer(minutes) },
+                    onCancelSleepTimer = { vm.cancelSleepTimer() }
                 )
             }
         }

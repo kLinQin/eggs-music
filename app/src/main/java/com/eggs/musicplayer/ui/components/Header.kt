@@ -1,5 +1,6 @@
 package com.eggs.musicplayer.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -37,10 +39,11 @@ fun Header(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier.size(32.dp).clip(CircleShape).background(Accent),
-                contentAlignment = Alignment.Center
-            ) { Text("♪", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+            Image(
+                painter = painterResource(id = com.eggs.musicplayer.R.drawable.ic_logo),
+                contentDescription = "Egg Music",
+                modifier = Modifier.size(32.dp)
+            )
             Text("Egg Music", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
