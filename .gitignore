@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+app/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android
+local.properties
+*.iml
+.idea/
+.externalNativeBuild/
+.cxx/
+captures/
+output.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Proyek
+patch.js
+lirik_web.txt
+*.log
