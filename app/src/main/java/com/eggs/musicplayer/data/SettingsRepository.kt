@@ -8,13 +8,15 @@ class SettingsRepository(context: Context) {
 
     fun load(): AppSettings = AppSettings(
         autoFetchLyrics = prefs.getBoolean(KEY_AUTO_LYRICS, true),
-        enableLyricsOvh = prefs.getBoolean(KEY_LYRICS_OVH, false)
+        enableLyricsOvh = prefs.getBoolean(KEY_LYRICS_OVH, false),
+        stretchLyricsDuration = prefs.getBoolean(KEY_STRETCH_LYRICS, true)
     )
 
     fun save(s: AppSettings) {
         prefs.edit()
             .putBoolean(KEY_AUTO_LYRICS, s.autoFetchLyrics)
             .putBoolean(KEY_LYRICS_OVH, s.enableLyricsOvh)
+            .putBoolean(KEY_STRETCH_LYRICS, s.stretchLyricsDuration)
             .apply()
     }
 
@@ -39,6 +41,7 @@ class SettingsRepository(context: Context) {
     companion object {
         private const val KEY_AUTO_LYRICS = "autoFetchLyrics"
         private const val KEY_LYRICS_OVH = "enableLyricsOvh"
+        private const val KEY_STRETCH_LYRICS = "stretchLyricsDuration"
         private const val KEY_EQ_PRESET = "eqPreset"
         private const val KEY_EQ_LEVELS = "eqLevels"
         private const val KEY_VOLUME = "playerVolume"

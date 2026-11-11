@@ -20,7 +20,8 @@ data class LyricLine(val timeMs: Long, val text: String)
 data class LyricsResult(
     val synced: Boolean,
     val lines: List<LyricLine>,
-    val plain: String?
+    val plain: String?,
+    val lengthMs: Long? = null
 )
 
 data class LyricsSearchItem(
@@ -70,6 +71,15 @@ class LyricsRepository {
         return LrcResponse(synced, plain, inst)
     }
 
+    private val lengthTagRegex = Regex("""\[length:\s*(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\]""")
+
+    private fun parseLengthTag(lrc: String): Long? {
+        val m = lengthTagRegex.find(lrc) ?: return null
+        val (min, sec, ms) = m.destructured
+        val msVal = if (ms.isNotEmpty()) ms.padEnd(3, '0').toInt() else 0
+        return min.toLong() * 60_000 + sec.toLong() * 1000 + msVal
+    }
+
     private fun parseLrc(lrc: String): List<LyricLine> {
         val regex = Regex("""\[(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\](.*)""")
         val out = mutableListOf<LyricLine>()
@@ -87,10 +97,10 @@ class LyricsRepository {
     private fun normalize(r: LrcResponse): LyricsResult? {
         if (r.instrumental) return null
         r.syncedLyrics?.let { s ->
-            return LyricsResult(true, parseLrc(s), r.plainLyrics)
+            return LyricsResult(true, parseLrc(s), r.plainLyrics, parseLengthTag(s))
         }
         r.plainLyrics?.let { p ->
-            return LyricsResult(false, p.split("\n").map { LyricLine(0, it) }, p)
+            return LyricsResult(false, p.split("\n").map { LyricLine(0, it) }, p, null)
         }
         return null
     }
@@ -176,6 +186,69 @@ class LyricsRepository {
             val out = normalize(parsed)
             byIdCache[id] = out
             return out
+        }
+    }
+
+    private fun tokenize(s: String): Set<String> {
+        return s.lowercase()
+            .replace(Regex("[^a-z0-9 ]"), " ")
+            .split(" ")
+            .filter { it.length >= 2 && it !in setOf("the", "a", "an", "of", "and") }
+            .toSet()
+    }
+
+    private fun scoreCandidate(cand: SearchRaw, trackName: String, artistName: String, albumName: String?, durationSec: Int?): Int {
+        var score = 0
+        val t = tokenize(trackName)
+        val a = tokenize(artistName)
+        val candT = tokenize(cand.trackName)
+        val candA = tokenize(cand.artistName)
+        val tOverlap = t.intersect(candT).size
+        val aOverlap = a.intersect(candA).size
+        score += tOverlap * 10
+        score += aOverlap * 8
+        if (!albumName.isNullOrBlank()) {
+            val al = tokenize(albumName)
+            val candAl = tokenize(cand.albumName)
+            score += al.intersect(candAl).size * 3
+        }
+        if (durationSec != null && durationSec > 0 && cand.duration > 0) {
+            val diff = kotlin.math.abs(cand.duration - durationSec)
+            score += when {
+                diff <= 2 -> 30
+                diff <= 5 -> 15
+                diff <= 15 -> 5
+                else -> 0
+            }
+        }
+        if (!cand.syncedLyrics.isNullOrBlank()) score += 5
+        return score
+    }
+
+    suspend fun fetchLyricsWithFallback(
+        trackName: String,
+        artistName: String,
+        albumName: String?,
+        durationSec: Int?
+    ): LyricsResult? {
+        val direct = runCatching { fetchLyrics(trackName, artistName, albumName, durationSec) }.getOrNull()
+        if (direct != null) return direct
+
+        val query = listOf(trackName, artistName).filter { it.isNotBlank() }.joinToString(" ")
+        if (query.isBlank()) return null
+        val url = "https://lrclib.net/api/search?q=" + URLEncoder.encode(query, "UTF-8")
+        val res = runCatching { throttledExecute(url) }.getOrNull() ?: return null
+        res.use { r ->
+            if (!r.isSuccessful) return null
+            val body = r.body?.string() ?: return null
+            val arr = runCatching { json.decodeFromString<List<SearchRaw>>(body) }.getOrNull() ?: return null
+            if (arr.isEmpty()) return null
+            val best = arr.maxByOrNull { scoreCandidate(it, trackName, artistName, albumName, durationSec) } ?: return null
+            return if (!best.syncedLyrics.isNullOrBlank()) {
+                LyricsResult(true, parseLrc(best.syncedLyrics), best.plainLyrics, parseLengthTag(best.syncedLyrics))
+            } else if (!best.plainLyrics.isNullOrBlank()) {
+                LyricsResult(false, best.plainLyrics.split("\n").map { LyricLine(0, it) }, best.plainLyrics, null)
+            } else null
         }
     }
 }

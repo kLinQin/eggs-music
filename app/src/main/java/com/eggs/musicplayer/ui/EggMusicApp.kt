@@ -48,7 +48,7 @@ fun EggMusicApp(
             val currentTrackId = playerTrack?.id
             LaunchedEffect(currentTrackId) {
                 val t = tracks.firstOrNull { it.id == currentTrackId }
-                vm.onTrackChangedForLyrics(currentTrackId, t?.title, t?.artist, t?.album, t?.durationMs ?: 0L)
+                vm.onTrackChangedForLyrics(currentTrackId, t?.title, t?.artist, t?.album, t?.durationMs ?: 0L, t?.uri)
             }
             LaunchedEffect(positionMs, currentTrackId) {
                 if (currentTrackId != null) vm.updateActiveLine(positionMs)

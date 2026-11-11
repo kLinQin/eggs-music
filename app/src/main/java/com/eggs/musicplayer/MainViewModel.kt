@@ -20,6 +20,9 @@ import com.eggs.musicplayer.lyrics.LyricsUiState
 import com.eggs.musicplayer.lyrics.TranslateProvider
 import com.eggs.musicplayer.lyrics.TranslateRepository
 import com.eggs.musicplayer.lyrics.LyricsOvhRepository
+import com.eggs.musicplayer.lyrics.LyricsKuGouRepository
+import com.eggs.musicplayer.lyrics.LocalLyricsRepository
+import com.eggs.musicplayer.lyrics.LyricsInstrumentalDetector
 import com.eggs.musicplayer.lyrics.LyricLine
 import com.eggs.musicplayer.lyrics.LyricsSearchItem
 import com.eggs.musicplayer.model.AppSettings
@@ -58,10 +61,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val settingsRepo = SettingsRepository(app)
     private val lyricsRepo = LyricsRepository()
     private val lyricsOvhRepo = LyricsOvhRepository()
+    private val localLyricsRepo = LocalLyricsRepository(app)
+    private val lyricsKuGouRepo = LyricsKuGouRepository()
     private val translateRepo = TranslateRepository()
     private val manualLyricsDao = db.manualLyricsDao()
     private val cacheDao = db.cacheDao()
     private val json = Json { ignoreUnknownKeys = true }
+    private val _notFoundOnlineMS = mutableMapOf<String, Long>()
+    private val NOT_FOUND_RETRY_MS = 6L * 60 * 60 * 1000
+
+    private fun notFoundKey(trackId: String, provider: LyricsProvider) = trackId + "|" + provider.name
+    private fun wasNotFoundRecently(trackId: String, provider: LyricsProvider): Boolean {
+        val at = _notFoundOnlineMS[notFoundKey(trackId, provider)] ?: return false
+        return (System.currentTimeMillis() - at) < NOT_FOUND_RETRY_MS
+    }
+    private fun markNotFound(trackId: String, provider: LyricsProvider) {
+        _notFoundOnlineMS[notFoundKey(trackId, provider)] = System.currentTimeMillis()
+    }
 
     private val _appSettings = MutableStateFlow(settingsRepo.load())
     val appSettings: StateFlow<AppSettings> = _appSettings.asStateFlow()
@@ -120,7 +136,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ============= LIRIK =============
-    fun onTrackChangedForLyrics(trackId: String?, trackName: String?, artist: String?, album: String?, durationMs: Long) {
+
+    private fun computeStretchMultiplier(res: LyricsResult, trackDurationMs: Long): Double {
+        if (!_appSettings.value.stretchLyricsDuration) return 0.0
+        val lenMs = res.lengthMs ?: return 0.0
+        if (lenMs <= 0 || trackDurationMs <= 0) return 0.0
+        val mult = trackDurationMs.toDouble() / lenMs.toDouble()
+        return if (mult in 0.5..2.0) mult else 0.0
+    }
+
+    private fun applyStretch(res: LyricsResult, trackDurationMs: Long): LyricsResult {
+        val mult = computeStretchMultiplier(res, trackDurationMs)
+        if (mult == 0.0) return res
+        return res.copy(lines = res.lines.map { LyricLine((it.timeMs * mult).toLong(), it.text) })
+    }
+    fun onTrackChangedForLyrics(trackId: String?, trackName: String?, artist: String?, album: String?, durationMs: Long, audioPath: String? = null) {
         val current = _lyrics.value
         if (trackId == current.trackId) return
         lyricsJob?.cancel()
@@ -133,6 +163,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 return@launch
             }
             _lyrics.update { it.copy(hasManual = false) }
+            val ignoreMarker = runCatching { cacheDao.lyricsByTrack(trackId) }.getOrNull()
+            if (ignoreMarker != null && ignoreMarker.provider == "IGNORE") {
+                _lyrics.update { it.copy(isIgnored = true, loading = false, error = "Lirik ditandai tidak tersedia") }
+                return@launch
+            }
+            if (LyricsInstrumentalDetector.isInstrumentalTitle(trackName)) {
+                _lyrics.update { it.copy(isInstrumental = true, loading = false) }
+                return@launch
+            }
+            val local = runCatching { localLyricsRepo.findSidecar(audioPath) }.getOrNull()
+            if (local != null) {
+                val localStretched = applyStretch(local, durationMs)
+                _lyrics.update { it.copy(provider = LyricsProvider.Local, result = localStretched, loading = false, error = null) }
+                if (local.lines.isNotEmpty()) maybeTranslate()
+                return@launch
+            }
             val st = _appSettings.value
             val provider = when {
                 !st.autoFetchLyrics -> null
@@ -168,6 +214,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun fetchLyricsNow(trackId: String, trackName: String?, artist: String?, album: String?, durationMs: Long, provider: LyricsProvider) {
+        if (wasNotFoundRecently(trackId, provider)) {
+            _lyrics.update { it.copy(loading = false, error = "Lirik tidak tersedia (coba lagi nanti)", result = null) }
+            return
+        }
         Log.d("LyricsVM", "fetch provider=" + provider + " title=" + trackName + " artist=" + artist + " album=" + album + " dur=" + durationMs)
         _lyrics.update { it.copy(loading = true, error = null, result = null) }
         val cached = runCatching { cacheDao.lyricsByTrack(trackId) }.getOrNull()
@@ -175,14 +225,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val cachedRes = deserializeLyrics(cached.synced, cached.plain, cached.linesJson)
             if (cachedRes != null) {
                 Log.d("LyricsVM", "cache hit provider=" + provider + " lines=" + cachedRes.lines.size)
-                _lyrics.update { it.copy(loading = false, result = cachedRes, error = null) }
+                val stretched = applyStretch(cachedRes, durationMs)
+                _lyrics.update { it.copy(loading = false, result = stretched, error = null) }
                 if (cachedRes.lines.isNotEmpty()) maybeTranslate()
                 return
             }
         }
         val res = runCatching {
             when (provider) {
-                LyricsProvider.Lrclib -> lyricsRepo.fetchLyrics(
+                LyricsProvider.Lrclib -> lyricsRepo.fetchLyricsWithFallback(
                     trackName = trackName?.takeIf { it.isNotBlank() } ?: "unknown",
                     artistName = artist?.takeIf { it.isNotBlank() } ?: "unknown",
                     albumName = album,
@@ -192,7 +243,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     artist?.takeIf { it.isNotBlank() } ?: "unknown",
                     trackName?.takeIf { it.isNotBlank() } ?: "unknown"
                 )
-                LyricsProvider.Manual -> null
+                LyricsProvider.Manual, LyricsProvider.Local -> null
+                LyricsProvider.KuGou -> lyricsKuGouRepo.fetch(
+                    trackName = trackName?.takeIf { it.isNotBlank() } ?: "unknown",
+                    artistName = artist?.takeIf { it.isNotBlank() } ?: "unknown",
+                    albumName = album,
+                    durationSec = (durationMs / 1000).toInt().takeIf { it > 0 }
+                )
             }
         }.getOrElse { err ->
             _lyrics.update { it.copy(loading = false, error = err.message ?: "Gagal memuat lirik") }
@@ -210,7 +267,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 ))
             }
         }
-        _lyrics.update { it.copy(loading = false, result = res, error = if (res == null) "Lirik tidak tersedia" else null) }
+        if (res == null && (provider == LyricsProvider.Lrclib || provider == LyricsProvider.KuGou || provider == LyricsProvider.LyricsOvh)) {
+            markNotFound(trackId, provider)
+        }
+        val finalRes = res?.let { applyStretch(it, durationMs) }
+        _lyrics.update { it.copy(loading = false, result = finalRes, error = if (finalRes == null) "Lirik tidak tersedia" else null) }
         if (res != null) maybeTranslate()
     }
 

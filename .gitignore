@@ -24,3 +24,4 @@ lirik_web.txt
 
 # Release build output
 app/release/
+patch.js

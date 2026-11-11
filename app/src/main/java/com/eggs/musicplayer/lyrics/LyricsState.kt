@@ -2,7 +2,7 @@ package com.eggs.musicplayer.lyrics
 
 enum class LyricsMode { Plain, Indo, Inggris }
 
-enum class LyricsProvider { Lrclib, LyricsOvh, Manual }
+enum class LyricsProvider { Lrclib, LyricsOvh, Manual, Local, KuGou }
 
 data class LyricsUiState(
     val trackId: String? = null,
@@ -13,6 +13,8 @@ data class LyricsUiState(
     val translating: Boolean = false,
     val translateProgress: Int = 0,
     val result: LyricsResult? = null,
+    val isInstrumental: Boolean = false,
+    val isIgnored: Boolean = false,
     val translations: List<String> = emptyList(),
     val error: String? = null,
     val hasManual: Boolean = false,
