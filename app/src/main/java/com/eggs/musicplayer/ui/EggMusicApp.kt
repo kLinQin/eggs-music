@@ -290,6 +290,10 @@ fun EggMusicApp(
                     }
                 )
             }
+
+            if (updateInfo != null) {
+                UpdateDialog(info = updateInfo!!, onDismiss = { updateInfo = null })
+            }
         }
 
     }
