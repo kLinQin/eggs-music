@@ -56,7 +56,6 @@ fun LyricsPanel(
     var showBottomBar by remember { mutableStateOf(true) }
 
     Column(Modifier.fillMaxSize().background(BgElev)) {
-        // Mode switcher
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -157,7 +156,6 @@ fun LyricsPanel(
             HorizontalDivider(thickness = 1.dp, color = Border)
         }
 
-        // Body lirik
         val listState = rememberLazyListState()
         LaunchedEffect(state.activeLineIndex) {
             if (state.activeLineIndex >= 0) {
@@ -213,7 +211,6 @@ fun LyricsPanel(
         }
 
         if (showBottomBar) {
-        // Bottom bar: 2 grup horizontal, label kecil di atas tiap grup
         Row(
             Modifier
                 .fillMaxWidth()
@@ -248,7 +245,7 @@ fun LyricsPanel(
 }
 
 @Composable
-private fun LyricsChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun LyricsChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(6.dp))

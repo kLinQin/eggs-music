@@ -50,7 +50,6 @@ fun EqualizerSheet(
                 return@Column
             }
 
-            // Chip preset
             LazyRow(
                 Modifier.fillMaxWidth().padding(vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
@@ -65,7 +64,6 @@ fun EqualizerSheet(
             HorizontalDivider(thickness = 1.dp, color = Border)
             Spacer(Modifier.height(10.dp))
 
-            // Slider per band
             state.currentLevelsMb.forEachIndexed { idx, level ->
                 val min = state.minLevelMb.toInt()
                 val max = state.maxLevelMb.toInt()

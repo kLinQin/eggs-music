@@ -8,6 +8,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -63,6 +67,7 @@ fun MainView(
     onSearchLyrics: (String) -> Unit,
     onApplySearch: (Long) -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     onIgnoreLyrics: () -> Unit,
     onRemoveIgnoreLyrics: () -> Unit
 ) {
@@ -77,7 +82,6 @@ fun MainView(
             .clip(RoundedCornerShape(8.dp))
             .background(Brush.verticalGradient(listOf(Color(0xFF1F1F1F), BgElev)))
     ) {
-        // Header / hero
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +106,6 @@ fun MainView(
             }
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
-        // Tabs
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -114,12 +117,11 @@ fun MainView(
             TabBtn("Tips", tab == MainTab.Tips, Modifier.weight(1f)) { tab = MainTab.Tips }
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
-        // Content
         when (tab) {
             MainTab.Playlist -> PlaylistTab(playlists, tracks, playlist?.id, onSelectPlaylist, onRenamePlaylist, onDeletePlaylist) {
                 tab = MainTab.Tracks
             }
-            MainTab.Tracks -> TracksTab(tracks, currentTrackId, isPlaying, onPlay, onDeleteTrack)
+            MainTab.Tracks -> TracksTab(tracks, currentTrackId, isPlaying, onPlay, onDeleteTrack, onAddToPlaylist = onAddToPlaylist)
             MainTab.Lyrics -> LyricsPanel(
                 state = lyricsState,
                 currentTrackTitle = tracks.firstOrNull { it.id == currentTrackId }?.title,
@@ -256,13 +258,22 @@ private fun PlaylistTab(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Cover kotak 48dp dari track pertama di playlist ini
                 val coverPath = playlistCovers[pl.id]
                 Box(
                     Modifier.size(44.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (coverPath != null) {
+                    val isVirtual = pl.id in listOf("recently_added", "most_played", "singles", "library")
+                    if (isVirtual) {
+                        val icon = when (pl.id) {
+                            "recently_added" -> Icons.Default.Timer
+                            "most_played" -> Icons.Default.Favorite
+                            "singles" -> Icons.Default.MusicNote
+                            "library" -> Icons.Default.LibraryMusic
+                            else -> Icons.Default.Folder
+                        }
+                        Icon(icon, null, tint = if (current) Accent else TextMute, modifier = Modifier.size(24.dp))
+                    } else if (coverPath != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
                                 .data(File(coverPath))
@@ -311,7 +322,7 @@ private fun PlaylistTab(
 }
 
 @Composable
-private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit, onDeleteTrack: (Track) -> Unit) {
+private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit, onDeleteTrack: (Track) -> Unit, onAddToPlaylist: (Track) -> Unit) {
     if (tracks.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Playlist ini masih kosong.", color = TextDim, fontSize = 13.sp)
@@ -337,7 +348,6 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
                         Text("${idx + 1}", color = if (active) Accent else TextMute, fontSize = 12.sp)
                     }
                 }
-                // Cover kecil
                 Box(
                     Modifier.size(36.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)).background(BgPanel),
                     contentAlignment = Alignment.Center
@@ -373,6 +383,12 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
                     modifier = Modifier.width(34.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End
                 )
+                androidx.compose.material3.IconButton(
+                    onClick = { onAddToPlaylist(t) },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(Icons.Default.Add, "Tambah ke Playlist", tint = TextDim, modifier = Modifier.size(16.dp))
+                }
                 androidx.compose.material3.IconButton(
                     onClick = { onDeleteTrack(t) },
                     modifier = Modifier.size(28.dp)

@@ -14,5 +14,6 @@ data class Track(
     val folderId: String,
     val coverUri: String? = null,
     val mimeType: String? = null,
-    val addedAt: Long = System.currentTimeMillis()
+    val addedAt: Long = System.currentTimeMillis(),
+    val playCount: Int = 0
 )

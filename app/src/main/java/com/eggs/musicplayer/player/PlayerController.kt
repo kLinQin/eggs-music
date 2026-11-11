@@ -71,7 +71,6 @@ class PlayerController(
                     if (uri != null) resolveAndSet(uri)
                 }
             })
-            // sinkronisasi state awal
             controller?.let { c ->
                 val item = c.currentMediaItem
                 val uri = item?.mediaId ?: item?.localConfiguration?.uri?.toString()

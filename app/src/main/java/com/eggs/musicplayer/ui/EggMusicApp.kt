@@ -1,4 +1,8 @@
 package com.eggs.musicplayer.ui
+import com.eggs.musicplayer.data.UpdateChecker
+import com.eggs.musicplayer.data.UpdateInfo
+import com.eggs.musicplayer.ui.components.UpdateDialog
+import com.eggs.musicplayer.ui.components.AddToPlaylistDialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -51,6 +55,12 @@ fun EggMusicApp(
                 val t = tracks.firstOrNull { it.id == currentTrackId }
                 vm.onTrackChangedForLyrics(currentTrackId, t?.title, t?.artist, t?.album, t?.durationMs ?: 0L, t?.uri)
             }
+            LaunchedEffect(currentTrackId) {
+                if (currentTrackId != null) {
+                    val t = tracks.firstOrNull { it.id == currentTrackId }
+                    if (t != null) vm.recordPlay(t.id)
+                }
+            }
             LaunchedEffect(positionMs, currentTrackId) {
                 if (currentTrackId != null) vm.updateActiveLine(positionMs)
             }
@@ -63,6 +73,9 @@ fun EggMusicApp(
             val prefs = remember { com.eggs.musicplayer.data.SettingsRepository(appContext) }
             var shuffle by remember { mutableStateOf(prefs.loadShuffle()) }
             var showNowPlaying by remember { mutableStateOf(false) }
+            var addToPlaylistTrack by remember { mutableStateOf<com.eggs.musicplayer.model.Track?>(null) }
+            var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+            LaunchedEffect(Unit) { updateInfo = UpdateChecker.checkForUpdate() }
             val ctrlShuffle by vm.playerController.shuffle.collectAsStateWithLifecycle()
             LaunchedEffect(ctrlShuffle) { if (shuffle != ctrlShuffle) { shuffle = ctrlShuffle; prefs.saveShuffle(ctrlShuffle) } }
             var repeat by remember { mutableStateOf(runCatching { RepeatMode.valueOf(prefs.loadRepeat()) }.getOrDefault(RepeatMode.Off)) }
@@ -83,8 +96,49 @@ fun EggMusicApp(
 
             val currentPlaylist = playlists.firstOrNull { it.id == currentPlaylistId }
                 ?: playlists.firstOrNull()
-            val filtered = if (currentPlaylistId == "library" || currentPlaylist == null) tracks
-                else tracks.filter { it.folderId == currentPlaylist.id }
+
+            // State untuk lagu dari playlist manual
+            var manualTrackIds by remember { mutableStateOf<List<String>>(emptyList()) }
+            LaunchedEffect(currentPlaylistId) {
+                if (currentPlaylistId != null && currentPlaylistId != "library" && currentPlaylistId != "recently_added" && currentPlaylistId != "singles" && currentPlaylistId != "most_played") {
+                    vm.playlistTrackIds(currentPlaylistId).collect { manualTrackIds = it }
+                } else {
+                    if (manualTrackIds.isNotEmpty()) {
+                        manualTrackIds = emptyList()
+                    }
+                }
+            }
+            val recentTracks = tracks.sortedByDescending { it.addedAt }.take(50)
+            val virtualPlaylists = playlists + com.eggs.musicplayer.model.Playlist(
+                id = "recently_added",
+                name = "Baru Ditambahkan",
+                treeUri = "",
+                isSystem = true
+            ) + com.eggs.musicplayer.model.Playlist(
+                id = "most_played",
+                name = "Paling Sering Diputar",
+                treeUri = "",
+                isSystem = true
+            ) + com.eggs.musicplayer.model.Playlist(
+                id = "singles",
+                name = "Single",
+                treeUri = "",
+                isSystem = true
+            )
+
+            val filtered = when (currentPlaylistId) {
+                "recently_added" -> recentTracks
+                "most_played" -> tracks.filter { it.playCount > 0 }.sortedByDescending { it.playCount }.take(50)
+                "singles" -> tracks.filter { it.folderId == "library" }
+                "library" -> tracks
+                else -> {
+                    if (currentPlaylist?.isSystem == true) {
+                        tracks.filter { it.folderId == currentPlaylist.id }
+                    } else {
+                        tracks.filter { it.id in manualTrackIds }
+                    }
+                }
+            }
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Header(
@@ -98,7 +152,7 @@ fun EggMusicApp(
                     if (isWide) {
                         Box(modifier = Modifier.width(300.dp)) {
                             Sidebar(
-                                playlists = playlists,
+                                playlists = virtualPlaylists,
                                 currentId = currentPlaylistId,
                                 onSelect = { currentPlaylistId = it },
                                 onRename = { pl, name -> vm.renamePlaylist(pl, name) },
@@ -108,8 +162,8 @@ fun EggMusicApp(
                     }
                     Box(modifier = Modifier.weight(1f)) {
                         MainView(
-                            playlist = currentPlaylist,
-                            playlists = playlists,
+                            playlist = virtualPlaylists.firstOrNull { it.id == currentPlaylistId } ?: currentPlaylist,
+                            playlists = virtualPlaylists,
                             tracks = filtered,
                             currentTrackId = currentTrackId,
                             isPlaying = isPlaying,
@@ -121,6 +175,7 @@ fun EggMusicApp(
                                 val idx = filtered.indexOfFirst { it.id == t.id }.coerceAtLeast(0)
                                 vm.playerController.playQueue(filtered, idx)
                             }, onDeleteTrack = { t -> vm.deleteTrack(t) },
+                            onAddToPlaylist = { t -> addToPlaylistTrack = t },
                                 lyricsState = lyricsState,
                                 onLyricsMode = vm::setLyricsMode,
                                 onLyricsProvider = vm::setLyricsProvider,
@@ -208,33 +263,34 @@ fun EggMusicApp(
             if (showNowPlaying) {
                 NowPlayingScreen(
                     track = playerTrack,
-                    isPlaying = isPlaying,
-                    positionMs = positionMs,
-                    durationMs = if (durationMs > 0) durationMs else (playerTrack?.durationMs ?: 0L),
-                    shuffle = shuffle,
-                    repeat = repeat,
-                    onClose = { showNowPlaying = false },
-                    onToggle = { vm.playerController.toggle() },
-                    onPrev = { vm.playerController.prev() },
-                    onNext = { vm.playerController.next() },
-                    onSeek = { vm.playerController.seek(it) },
-                    onToggleShuffle = { vm.playerController.setShuffle(!shuffle) },
-                    onCycleRepeat = {
-                        val next = when (repeat) {
-                            RepeatMode.Off -> RepeatMode.All
-                            RepeatMode.All -> RepeatMode.One
-                            RepeatMode.One -> RepeatMode.Off
-                        }
-                        val mode = when (next) {
-                            RepeatMode.Off -> androidx.media3.common.Player.REPEAT_MODE_OFF
-                            RepeatMode.All -> androidx.media3.common.Player.REPEAT_MODE_ALL
-                            RepeatMode.One -> androidx.media3.common.Player.REPEAT_MODE_ONE
-                        }
-                        vm.playerController.setRepeat(mode)
+                    lyricsState = lyricsState,
+                    onSelectMode = vm::setLyricsMode,
+                    onSetProvider = vm::setLyricsProvider,
+                    onSetTranslateProvider = vm::setTranslateProvider,
+                    onToggleProviderPopup = vm::toggleProviderPopup,
+                    onToggleTranslatePopup = vm::toggleTranslatePopup,
+                    onOpenManual = vm::openManualDialog,
+                    onClose = { showNowPlaying = false }
+                )
+            }
+
+            if (addToPlaylistTrack != null) {
+                AddToPlaylistDialog(
+                    playlists = playlists,
+                    onDismiss = { addToPlaylistTrack = null },
+                    onAddToPlaylist = { pl ->
+                        vm.addTrackToPlaylist(pl.id, addToPlaylistTrack!!.id)
+                        addToPlaylistTrack = null
                     },
-                    lyricsState = lyricsState
+                    onCreateNewPlaylist = { name, callback ->
+                        vm.createPlaylist(name) { newPl ->
+                            callback(newPl)
+                            addToPlaylistTrack = null
+                        }
+                    }
                 )
             }
         }
+
     }
 }

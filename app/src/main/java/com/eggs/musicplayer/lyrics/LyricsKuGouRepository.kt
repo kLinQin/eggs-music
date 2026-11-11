@@ -94,7 +94,6 @@ class LyricsKuGouRepository {
             ?: run { cache[key] = null; return null }
         if (root.candidates.isEmpty()) { cache[key] = null; return null }
 
-        // pilih kandidat paling mirip durasi
         val best = root.candidates.minByOrNull { c ->
             if (durMs > 0 && c.duration > 0) abs(c.duration - durMs) else Long.MAX_VALUE
         } ?: root.candidates.first()

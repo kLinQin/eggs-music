@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** State EQ: band frekuensi (Hz), range level (mB), dan level saat ini. */
 data class EqState(
     val available: Boolean = false,
     val numberOfBands: Int = 0,
@@ -36,7 +35,7 @@ class EqualizerController(private val appContext: Context) {
 
     val presets = listOf("Flat", "Bass Boost", "Vocal", "Rock", "Pop", "Electronic")
 
-    /** Dipanggil saat audioSessionId valid. */
+
     fun attach(sessionId: Int) {
         if (sessionId == 0 || sessionId == this.sessionId) return
         releaseInternal()
@@ -58,7 +57,6 @@ class EqualizerController(private val appContext: Context) {
                 currentLevelsMb = current,
                 presetName = "Flat"
             )
-            // Restore dari prefs
             val savedPreset = prefs.loadEqPreset()
             val savedLevels = prefs.loadEqLevels()
             if (savedLevels.size == n) {

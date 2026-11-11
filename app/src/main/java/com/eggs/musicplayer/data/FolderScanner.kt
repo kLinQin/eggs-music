@@ -16,7 +16,7 @@ class FolderScanner(private val context: Context) {
 
     private val audioExts = setOf("mp3","flac","m4a","aac","ogg","wav","opus","wma","mp4")
 
-    /** Scan tree URI, kembalikan (playlist, list track) dan progres via callback. */
+
     suspend fun scan(
         treeUri: Uri,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }
@@ -87,7 +87,7 @@ class FolderScanner(private val context: Context) {
         } catch (e: Exception) { null } finally { runCatching { retriever.release() } }
     }
 
-    /** Cari file cover di folder yang sama (cover.jpg, folder.jpg, album.jpg, front.jpg). */
+
     private fun findFolderCover(audioFile: DocumentFile): ByteArray? {
         val parent = audioFile.parentFile ?: return null
         val names = listOf("cover.jpg", "cover.jpeg", "folder.jpg", "folder.jpeg", "album.jpg", "album.jpeg", "front.jpg", "front.jpeg")
@@ -112,7 +112,7 @@ class FolderScanner(private val context: Context) {
         }.getOrNull()
     }
 
-    /** Ambil ulang cover untuk track lama (embedded / folder). */
+
     fun refreshCoverFor(track: Track): String? {
         val uri = Uri.parse(track.uri)
         val retriever = MediaMetadataRetriever()

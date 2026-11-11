@@ -7,6 +7,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -63,8 +68,15 @@ fun Sidebar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val icon = when (pl.id) {
+                        "recently_added" -> Icons.Default.Timer
+                        "most_played" -> Icons.Default.Favorite
+                        "singles" -> Icons.Default.MusicNote
+                        "library" -> Icons.Default.LibraryMusic
+                        else -> Icons.Default.Folder
+                    }
                     Icon(
-                        if (pl.isSystem) Icons.Default.LibraryMusic else Icons.AutoMirrored.Filled.QueueMusic,
+                        icon,
                         null,
                         tint = if (current) Accent else TextMute,
                         modifier = Modifier.size(20.dp)

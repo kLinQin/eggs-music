@@ -84,7 +84,6 @@ fun PlayerBar(
     ) {
         HorizontalDivider(thickness = 1.dp, color = Border, modifier = Modifier.padding(bottom = 6.dp))
 
-        // ===== Baris 1: info (kiri) | EQ + mute + volume (kanan) =====
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.weight(1f),
@@ -149,7 +148,6 @@ fun PlayerBar(
 
         Spacer(Modifier.height(6.dp))
 
-        // ===== Baris 2: controls di tengah + seek di bawah =====
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -191,7 +189,6 @@ fun PlayerBar(
                 }
             }
             Spacer(Modifier.height(4.dp))
-            // Seek full width di bawah controls
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -241,7 +238,6 @@ fun PlayerBar(
     }
 }
 
-/** Slider tipis: track 4dp, thumb 12dp (persis CSS input[type=range]). */
 @Composable
 internal fun ThinSlider(
     value: Float,
@@ -301,7 +297,6 @@ internal fun ThinSlider(
 
 private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier =
     this.clickable(interactionSource = MutableInteractionSource(), indication = null, onClick = onClick)
-
 
 @Composable
 private fun TimerChip(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {

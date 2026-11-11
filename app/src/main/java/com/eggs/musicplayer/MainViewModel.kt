@@ -49,6 +49,7 @@ import com.eggs.musicplayer.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -88,6 +89,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val sleepTimerRemainingMs: StateFlow<Long?> = _sleepTimerRemainingMs.asStateFlow()
     private var sleepTimerJob: Job? = null
 
+    fun recordPlay(trackId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { trackDao.incrementPlayCount(trackId) }
+        }
+    }
+
     private val _lyrics = MutableStateFlow(LyricsUiState())
     val lyrics: StateFlow<LyricsUiState> = _lyrics.asStateFlow()
     private var lyricsJob: Job? = null
@@ -116,7 +123,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             playlistDao.all().collect { _playlists.value = it }
         }
-        // pastikan playlist Library ada
         viewModelScope.launch {
             if (playlistDao.byId("library") == null) {
                 playlistDao.upsert(Playlist("library", "Library", isSystem = true))
@@ -131,13 +137,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         sleepTimerJob?.cancel()
     }
 
-    // ============= SETTINGS =============
     fun updateAppSettings(s: AppSettings) {
         settingsRepo.save(s)
         _appSettings.value = s
     }
-
-    // ============= LIRIK =============
 
     private fun computeStretchMultiplier(res: LyricsResult, trackDurationMs: Long): Double {
         if (!_appSettings.value.stretchLyricsDuration) return 0.0
@@ -480,7 +483,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ============= DELETE TRACK =============
     fun deleteTrack(t: Track) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
@@ -495,7 +497,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ============= SLEEP TIMER =============
     fun startSleepTimer(minutes: Int) {
         sleepTimerJob?.cancel()
         val totalMs = minutes * 60_000L
@@ -520,7 +521,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _sleepTimerRemainingMs.value = null
     }
 
-    // ============= COVERS =============
     fun refreshAllCovers() {
         viewModelScope.launch {
             val list = tracks.value.filter { it.coverUri.isNullOrBlank() }
@@ -540,6 +540,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
+
+    fun createPlaylist(name: String, onCreated: (Playlist) -> Unit) {
+        viewModelScope.launch {
+            val id = java.util.UUID.randomUUID().toString()
+            val pl = Playlist(id = id, name = name, isSystem = false)
+            playlistDao.upsert(pl)
+            onCreated(pl)
+        }
+    }
+
+    fun addTrackToPlaylist(playlistId: String, trackId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                playlistDao.insertPlaylistTrack(com.eggs.musicplayer.model.PlaylistTrack(playlistId, trackId))
+            }
+        }
+    }
+
+    fun removeTrackFromPlaylist(playlistId: String, trackId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { playlistDao.deletePlaylistTrack(playlistId, trackId) }
+        }
+    }
+
+    fun playlistTrackIds(playlistId: String): Flow<List<String>> = playlistDao.trackIdsForPlaylist(playlistId)
 
     fun renamePlaylist(pl: Playlist, newName: String) {
         viewModelScope.launch { playlistDao.rename(pl.id, newName) }

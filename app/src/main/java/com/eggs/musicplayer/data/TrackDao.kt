@@ -21,8 +21,14 @@ interface TrackDao {
     @Query("SELECT * FROM tracks WHERE uri = :uri LIMIT 1")
     suspend fun byUri(uri: String): Track?
 
+    @Query("SELECT * FROM tracks ORDER BY addedAt DESC LIMIT 50")
+    fun recentlyAdded(): Flow<List<Track>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(list: List<Track>)
+
+    @Query("UPDATE tracks SET playCount = playCount + 1 WHERE id = :id")
+    suspend fun incrementPlayCount(id: String)
 
     @Query("DELETE FROM tracks WHERE uri = :uri")
     suspend fun deleteByUri(uri: String)

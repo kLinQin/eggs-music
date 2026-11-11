@@ -17,12 +17,10 @@ class TranslateRepository {
     private val client = OkHttpClient.Builder().build()
     private val json = Json { ignoreUnknownKeys = true }
 
-    // Flag blokir Google 60 detik jika 429/403
     @Volatile private var googleBlockedUntil = 0L
 
     private val fallbackSources = listOf("en", "ko", "ja", "zh", "id")
 
-    // ============ MyMemory ============
     @Serializable
     private data class MyMemoryResp(
         val responseStatus: Int = 0,
@@ -57,7 +55,6 @@ class TranslateRepository {
         return last
     }
 
-    // ============ Google (unofficial) ============
     private fun googleBlocked(): Boolean = System.currentTimeMillis() < googleBlockedUntil
     private fun blockGoogle() { googleBlockedUntil = System.currentTimeMillis() + 60_000 }
 
@@ -76,8 +73,6 @@ class TranslateRepository {
             if (r.code == 429 || r.code == 403) { blockGoogle(); return null }
             if (!r.isSuccessful) return null
             val body = r.body?.string() ?: return null
-            // Response Google: [[["teks","src",...],...],...]
-            // Ambil semua segmen teks pertama.
             val arr = runCatching { json.parseToJsonElement(body) }.getOrNull() ?: return null
             val outer = arr as? kotlinx.serialization.json.JsonArray ?: return null
             val first = outer.firstOrNull() as? kotlinx.serialization.json.JsonArray ?: return null

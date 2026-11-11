@@ -23,4 +23,16 @@ interface PlaylistDao {
 
     @Query("UPDATE playlists SET name = :name WHERE id = :id AND isSystem = 0")
     suspend fun rename(id: String, name: String)
+
+    @Query("SELECT trackId FROM playlist_tracks WHERE playlistId = :playlistId")
+    fun trackIdsForPlaylist(playlistId: String): Flow<List<String>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlaylistTrack(pt: com.eggs.musicplayer.model.PlaylistTrack)
+
+    @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId AND trackId = :trackId")
+    suspend fun deletePlaylistTrack(playlistId: String, trackId: String)
+
+    @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId")
+    suspend fun clearPlaylistTracks(playlistId: String)
 }
