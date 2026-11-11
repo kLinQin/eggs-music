@@ -67,7 +67,7 @@ private val TIPS: List<TipSection> = listOf(
             TipBlock.Bullet("Pilih 1 atau lebih file audio — masuk ke playlist Library"),
             TipBlock.Heading("Format yang didukung"),
             TipBlock.Bullet("MP3, FLAC, M4A/AAC, OGG/Opus, WAV"),
-            TipBlock.Hint("Metadata (judul, artist, album, cover, bitrate, durasi) dibaca otomatis. Folder besar butuh beberapa detik.", "info")
+            TipBlock.Hint("Metadata (judul, artist, album, cover, durasi) dibaca otomatis. Folder besar butuh beberapa detik.", "info")
         )
     ),
     TipSection(

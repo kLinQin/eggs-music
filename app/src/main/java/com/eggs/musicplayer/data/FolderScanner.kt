@@ -70,13 +70,6 @@ class FolderScanner(private val context: Context) {
             val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
             val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
             val mime = context.contentResolver.getType(uri)
-            var bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull() ?: 0
-            if (bitrate <= 0 && duration > 0) {
-                val size = runCatching {
-                    context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
-                }.getOrNull() ?: 0L
-                if (size > 0) bitrate = ((size * 8L) / (duration / 1000L)).toInt()
-            }
             val id = UUID.randomUUID().toString()
             val coverBytes = runCatching { retriever.embeddedPicture }.getOrNull()
             val coverPath = saveCover(id, coverBytes)
@@ -89,8 +82,7 @@ class FolderScanner(private val context: Context) {
                 durationMs = duration,
                 folderId = folderId,
                 coverUri = coverPath,
-                mimeType = mime,
-                bitrate = bitrate
+                mimeType = mime
             )
         } catch (e: Exception) { null } finally { runCatching { retriever.release() } }
     }

@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,6 +53,7 @@ fun LyricsPanel(
 ) {
     var searchOpen by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
+    var showBottomBar by remember { mutableStateOf(true) }
 
     Column(Modifier.fillMaxSize().background(BgElev)) {
         // Mode switcher
@@ -89,6 +92,13 @@ fun LyricsPanel(
                 IconButton(onClick = onIgnore, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Block, "Tandai tidak ada lirik", tint = TextMute, modifier = Modifier.size(18.dp))
                 }
+            }
+            IconButton(onClick = { showBottomBar = !showBottomBar }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    if (showBottomBar) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    if (showBottomBar) "Sembunyikan bar bawah" else "Tampilkan bar bawah",
+                    tint = TextMute, modifier = Modifier.size(18.dp)
+                )
             }
         }
         HorizontalDivider(thickness = 1.dp, color = Border)
@@ -202,6 +212,7 @@ fun LyricsPanel(
             }
         }
 
+        if (showBottomBar) {
         // Bottom bar: 2 grup horizontal, label kecil di atas tiap grup
         Row(
             Modifier
@@ -232,6 +243,7 @@ fun LyricsPanel(
             }
         }
 
+        }
     }
 }
 

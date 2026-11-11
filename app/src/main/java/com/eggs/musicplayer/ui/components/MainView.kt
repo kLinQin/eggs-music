@@ -359,12 +359,6 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
                     if (!t.artist.isNullOrBlank()) Text(t.artist, color = TextMute, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Text(
-                    if (t.bitrate > 0) "${t.bitrate / 1000} kbps" else "—",
-                    color = TextMute, fontSize = 11.sp,
-                    modifier = Modifier.width(56.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.End
-                )
-                Text(
                     formatMs(t.durationMs),
                     color = TextMute, fontSize = 11.sp,
                     modifier = Modifier.width(34.dp),
