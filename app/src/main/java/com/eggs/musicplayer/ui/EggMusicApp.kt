@@ -21,6 +21,7 @@ import com.eggs.musicplayer.ui.components.MainView
 import com.eggs.musicplayer.ui.components.LyricsPanel
 import com.eggs.musicplayer.ui.components.ManualLyricsDialog
 import com.eggs.musicplayer.ui.components.PlayerBar
+import com.eggs.musicplayer.ui.components.NowPlayingScreen
 import com.eggs.musicplayer.ui.components.SettingsSheet
 import com.eggs.musicplayer.ui.components.RepeatMode
 import com.eggs.musicplayer.ui.components.Sidebar
@@ -61,6 +62,7 @@ fun EggMusicApp(
             val appContext = androidx.compose.ui.platform.LocalContext.current
             val prefs = remember { com.eggs.musicplayer.data.SettingsRepository(appContext) }
             var shuffle by remember { mutableStateOf(prefs.loadShuffle()) }
+            var showNowPlaying by remember { mutableStateOf(false) }
             val ctrlShuffle by vm.playerController.shuffle.collectAsStateWithLifecycle()
             LaunchedEffect(ctrlShuffle) { if (shuffle != ctrlShuffle) { shuffle = ctrlShuffle; prefs.saveShuffle(ctrlShuffle) } }
             var repeat by remember { mutableStateOf(runCatching { RepeatMode.valueOf(prefs.loadRepeat()) }.getOrDefault(RepeatMode.Off)) }
@@ -196,9 +198,41 @@ fun EggMusicApp(
                     onVolume = { volume = it; isMuted = false },
                     onToggleMute = { isMuted = !isMuted },
                     onOpenEq = { showEq = true },
+                    onOpenNowPlaying = { showNowPlaying = true },
                     sleepTimerRemainingMs = sleepRemaining,
                     onSleepTimer = { minutes -> vm.startSleepTimer(minutes) },
                     onCancelSleepTimer = { vm.cancelSleepTimer() }
+                )
+            }
+
+            if (showNowPlaying) {
+                NowPlayingScreen(
+                    track = playerTrack,
+                    isPlaying = isPlaying,
+                    positionMs = positionMs,
+                    durationMs = if (durationMs > 0) durationMs else (playerTrack?.durationMs ?: 0L),
+                    shuffle = shuffle,
+                    repeat = repeat,
+                    onClose = { showNowPlaying = false },
+                    onToggle = { vm.playerController.toggle() },
+                    onPrev = { vm.playerController.prev() },
+                    onNext = { vm.playerController.next() },
+                    onSeek = { vm.playerController.seek(it) },
+                    onToggleShuffle = { vm.playerController.setShuffle(!shuffle) },
+                    onCycleRepeat = {
+                        val next = when (repeat) {
+                            RepeatMode.Off -> RepeatMode.All
+                            RepeatMode.All -> RepeatMode.One
+                            RepeatMode.One -> RepeatMode.Off
+                        }
+                        val mode = when (next) {
+                            RepeatMode.Off -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                            RepeatMode.All -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                            RepeatMode.One -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                        }
+                        vm.playerController.setRepeat(mode)
+                    },
+                    lyricsState = lyricsState
                 )
             }
         }

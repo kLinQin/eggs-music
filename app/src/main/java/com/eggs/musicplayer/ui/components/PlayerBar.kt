@@ -70,6 +70,7 @@ fun PlayerBar(
     onVolume: (Float) -> Unit,
     onToggleMute: () -> Unit,
     onOpenEq: () -> Unit,
+    onOpenNowPlaying: () -> Unit = {},
     sleepTimerRemainingMs: Long? = null,
     onSleepTimer: (Int) -> Unit = {},
     onCancelSleepTimer: () -> Unit = {}
@@ -91,7 +92,7 @@ fun PlayerBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel).clickableNoRipple(onOpenNowPlaying),
                     contentAlignment = Alignment.Center
                 ) {
                     val coverPath = track?.coverUri
@@ -106,7 +107,7 @@ fun PlayerBar(
                         Icon(Icons.Default.MusicNote, null, tint = TextDim, modifier = Modifier.size(20.dp))
                     }
                 }
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).clickableNoRipple(onOpenNowPlaying)) {
                     Text(
                         track?.title ?: "Tidak ada lagu",
                         color = TextMain, fontSize = 12.sp,
@@ -242,7 +243,7 @@ fun PlayerBar(
 
 /** Slider tipis: track 4dp, thumb 12dp (persis CSS input[type=range]). */
 @Composable
-private fun ThinSlider(
+internal fun ThinSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier
