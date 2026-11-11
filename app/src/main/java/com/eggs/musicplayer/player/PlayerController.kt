@@ -37,6 +37,14 @@ class PlayerController(
     private val _durationMs = MutableStateFlow(0L)
     val durationMs: StateFlow<Long> = _durationMs.asStateFlow()
 
+    private val _shuffle = MutableStateFlow(false)
+    val shuffle: StateFlow<Boolean> = _shuffle.asStateFlow()
+
+    private val _repeatMode = MutableStateFlow(0)
+    val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
+    private val _queue = mutableListOf<Track>()
+    private var _queueIndex = -1
+
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var ticker: Job? = null
 
@@ -56,6 +64,8 @@ class PlayerController(
                         _durationMs.value = controller?.duration?.coerceAtLeast(0) ?: 0L
                     }
                 }
+                override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) { _shuffle.value = shuffleModeEnabled }
+                override fun onRepeatModeChanged(repeatMode: Int) { _repeatMode.value = repeatMode }
                 override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
                     val uri = item?.mediaId ?: item?.localConfiguration?.uri?.toString()
                     if (uri != null) resolveAndSet(uri)
@@ -69,6 +79,8 @@ class PlayerController(
                 _isPlaying.value = c.isPlaying
                 _durationMs.value = c.duration.coerceAtLeast(0)
                 _positionMs.value = c.currentPosition.coerceAtLeast(0)
+                _shuffle.value = c.shuffleModeEnabled
+                _repeatMode.value = c.repeatMode
             }
             startTicker()
         }, MoreExecutors.directExecutor())
@@ -123,6 +135,53 @@ class PlayerController(
         c.setMediaItem(item)
         c.prepare()
         c.play()
+    }
+
+    fun playQueue(tracks: List<Track>, startIndex: Int) {
+        val c = controller ?: return
+        if (tracks.isEmpty()) return
+        val idx = startIndex.coerceIn(0, tracks.lastIndex)
+        _queue.clear()
+        _queue.addAll(tracks)
+        _queueIndex = idx
+        for (t in tracks) trackIndex[t.uri] = t
+        val items = tracks.map { t ->
+            MediaItem.Builder()
+                .setUri(t.uri)
+                .setMediaId(t.uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(t.title)
+                        .setArtist(t.artist)
+                        .setAlbumTitle(t.album)
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .build()
+                )
+                .build()
+        }
+        c.setMediaItems(items, idx, 0L)
+        c.prepare()
+        c.play()
+    }
+
+    fun next() {
+        val c = controller ?: return
+        if (c.hasNextMediaItem()) c.seekToNextMediaItem()
+    }
+
+    fun prev() {
+        val c = controller ?: return
+        if (c.hasPreviousMediaItem()) c.seekToPreviousMediaItem()
+        else c.seekTo(0)
+    }
+
+    fun setShuffle(enabled: Boolean) {
+        controller?.shuffleModeEnabled = enabled
+    }
+
+    fun setRepeat(mode: Int) {
+        controller?.repeatMode = mode
     }
 
     fun toggle() {

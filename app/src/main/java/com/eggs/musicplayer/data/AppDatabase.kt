@@ -10,7 +10,7 @@ import com.eggs.musicplayer.model.TranslationCache
 import com.eggs.musicplayer.model.Playlist
 import com.eggs.musicplayer.model.Track
 
-@Database(entities = [Track::class, Playlist::class, ManualLyrics::class, LyricsCache::class, TranslationCache::class], version = 4, exportSchema = false)
+@Database(entities = [Track::class, Playlist::class, ManualLyrics::class, LyricsCache::class, TranslationCache::class], version = 5, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun trackDao(): TrackDao
     abstract fun playlistDao(): PlaylistDao

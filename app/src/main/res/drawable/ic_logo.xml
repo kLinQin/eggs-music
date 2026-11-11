@@ -1,38 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- Telur (cream) -->
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
     <path
         android:fillColor="#F5EFE0"
-        android:pathData="M54,80
-            C40,80 30,68 30,56
-            C30,44 36,36 44,32
-            C48,30 50,29 54,29
-            C58,29 60,30 64,32
-            C72,36 78,44 78,56
-            C78,68 68,80 54,80 Z" />
-
-    <!-- Note musik (oranye) -->
-    <path
-        android:fillColor="#FF8A7A"
-        android:pathData="M58,40
-            L58,60
-            C58,63.5 55.5,66 52,66
-            C48.5,66 46,63.5 46,60
-            C46,56.5 48.5,54 52,54
-            C53,54 54,54.2 55,54.6
-            L55,44
-            L68,41.5
-            L68,51
-            C68,54.5 65.5,57 62,57
-            C58.5,57 56,54.5 56,51
-            C56,48.7 57.2,46.8 59,45.8
-            L59,44
-            L55,44.8
-            L55,40
-            Z" />
+        android:strokeColor="#D4C5A8"
+        android:strokeWidth="1.5"
+        android:pathData="M32 12 C 42 12, 50 22, 50 34 C 50 46, 42 54, 32 54 C 22 54, 14 46, 14 34 C 14 22, 22 12, 32 12 Z" />
+    <path android:fillColor="#FBBF24" android:pathData="M26 30.5 A 5.5 5.5 0 1 1 25.99 30.5 Z" />
+    <path android:fillColor="#FBBF24" android:pathData="M38 30.5 A 5.5 5.5 0 1 1 37.99 30.5 Z" />
 </vector>

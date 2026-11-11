@@ -61,7 +61,18 @@ fun EggMusicApp(
             val appContext = androidx.compose.ui.platform.LocalContext.current
             val prefs = remember { com.eggs.musicplayer.data.SettingsRepository(appContext) }
             var shuffle by remember { mutableStateOf(prefs.loadShuffle()) }
+            val ctrlShuffle by vm.playerController.shuffle.collectAsStateWithLifecycle()
+            LaunchedEffect(ctrlShuffle) { if (shuffle != ctrlShuffle) { shuffle = ctrlShuffle; prefs.saveShuffle(ctrlShuffle) } }
             var repeat by remember { mutableStateOf(runCatching { RepeatMode.valueOf(prefs.loadRepeat()) }.getOrDefault(RepeatMode.Off)) }
+            val ctrlRepeat by vm.playerController.repeatMode.collectAsStateWithLifecycle()
+            LaunchedEffect(ctrlRepeat) {
+                val mapped = when (ctrlRepeat) {
+                    androidx.media3.common.Player.REPEAT_MODE_ALL -> RepeatMode.All
+                    androidx.media3.common.Player.REPEAT_MODE_ONE -> RepeatMode.One
+                    else -> RepeatMode.Off
+                }
+                if (repeat != mapped) { repeat = mapped; prefs.saveRepeat(mapped.name) }
+            }
             var volume by remember { mutableStateOf(prefs.loadVolume()) }
             var isMuted by remember { mutableStateOf(false) }
             LaunchedEffect(shuffle) { prefs.saveShuffle(shuffle) }
@@ -104,7 +115,10 @@ fun EggMusicApp(
                             onSelectPlaylist = { currentPlaylistId = it },
                             onRenamePlaylist = { pl, name -> vm.renamePlaylist(pl, name) },
                             onDeletePlaylist = { pl -> vm.deletePlaylist(pl) },
-                            onPlay = { t -> vm.playerController.play(t) }, onDeleteTrack = { t -> vm.deleteTrack(t) },
+                            onPlay = { t ->
+                                val idx = filtered.indexOfFirst { it.id == t.id }.coerceAtLeast(0)
+                                vm.playerController.playQueue(filtered, idx)
+                            }, onDeleteTrack = { t -> vm.deleteTrack(t) },
                                 lyricsState = lyricsState,
                                 onLyricsMode = vm::setLyricsMode,
                                 onLyricsProvider = vm::setLyricsProvider,
@@ -162,22 +176,22 @@ fun EggMusicApp(
                     volume = volume,
                     isMuted = isMuted,
                     onToggle = { vm.playerController.toggle() },
-                    onPrev = {
-                        val i = filtered.indexOfFirst { it.id == currentTrackId }
-                        if (i > 0) vm.playerController.play(filtered[i - 1])
-                    },
-                    onNext = {
-                        val i = filtered.indexOfFirst { it.id == currentTrackId }
-                        if (i >= 0 && i < filtered.lastIndex) vm.playerController.play(filtered[i + 1])
-                    },
+                    onPrev = { vm.playerController.prev() },
+                    onNext = { vm.playerController.next() },
                     onSeek = { vm.playerController.seek(it) },
-                    onToggleShuffle = { shuffle = !shuffle },
+                    onToggleShuffle = { vm.playerController.setShuffle(!shuffle) },
                     onCycleRepeat = {
-                        repeat = when (repeat) {
+                        val next = when (repeat) {
                             RepeatMode.Off -> RepeatMode.All
                             RepeatMode.All -> RepeatMode.One
                             RepeatMode.One -> RepeatMode.Off
                         }
+                        val mode = when (next) {
+                            RepeatMode.Off -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                            RepeatMode.All -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                            RepeatMode.One -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                        }
+                        vm.playerController.setRepeat(mode)
                     },
                     onVolume = { volume = it; isMuted = false },
                     onToggleMute = { isMuted = !isMuted },

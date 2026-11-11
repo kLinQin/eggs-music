@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
 import com.eggs.musicplayer.model.Playlist
@@ -149,7 +151,11 @@ private fun HeroBox(label: String, title: String, sub: String, icon: androidx.co
             when {
                 coverPaths.size == 1 -> {
                     AsyncImage(
-                        model = File(coverPaths.first()),
+                        model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                            .data(File(coverPaths.first()))
+                            .size(Size(96, 96))
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -189,7 +195,11 @@ private fun CoverCell(path: String, modifier: Modifier = Modifier) {
     ) {
         if (path.isNotBlank()) {
             AsyncImage(
-                model = File(path),
+                model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                    .data(File(path))
+                    .size(Size(160, 160))
+                    .crossfade(true)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -221,6 +231,15 @@ private fun PlaylistTab(
 ) {
     var editing by remember { mutableStateOf<Playlist?>(null) }
     var text by remember { mutableStateOf("") }
+    val playlistCovers = remember(playlists, tracks) {
+        val map = HashMap<String, String?>()
+        val systemCover = tracks.firstOrNull { it.coverUri != null }?.coverUri
+        for (pl in playlists) {
+            map[pl.id] = if (pl.isSystem) systemCover
+                else tracks.firstOrNull { it.folderId == pl.id && it.coverUri != null }?.coverUri
+        }
+        map
+    }
     if (playlists.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Belum ada playlist", color = TextDim) }
         return
@@ -238,18 +257,18 @@ private fun PlaylistTab(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Cover kotak 48dp dari track pertama di playlist ini
-                val coverPath = if (pl.isSystem) {
-                    tracks.firstOrNull { it.coverUri != null }?.coverUri
-                } else {
-                    tracks.firstOrNull { it.folderId == pl.id && it.coverUri != null }?.coverUri
-                }
+                val coverPath = playlistCovers[pl.id]
                 Box(
                     Modifier.size(44.dp).clip(RoundedCornerShape(4.dp)).background(BgPanel),
                     contentAlignment = Alignment.Center
                 ) {
                     if (coverPath != null) {
                         AsyncImage(
-                            model = File(coverPath),
+                            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                                .data(File(coverPath))
+                                .size(Size(96, 96))
+                                .crossfade(true)
+                                .build(),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -300,25 +319,6 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
         return
     }
     Column(Modifier.fillMaxSize()) {
-        // Header tabel sticky
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .background(BgElev)
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("#", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(20.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, letterSpacing = 0.5.sp)
-            Box(Modifier.size(36.dp))
-            Text("Judul", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f), letterSpacing = 0.5.sp)
-            Text("Bitrate", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(56.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, letterSpacing = 0.5.sp)
-            Text("Durasi", color = TextMute, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(34.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, letterSpacing = 0.5.sp)
-            Spacer(Modifier.width(28.dp))
-        }
         HorizontalDivider(thickness = 1.dp, color = Border)
         LazyColumn(Modifier.fillMaxSize()) {
             itemsIndexed(tracks, key = { _, t -> t.id }) { idx, t ->
@@ -344,8 +344,16 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
                 ) {
                     val cp = t.coverUri
                     if (!cp.isNullOrBlank()) {
+                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        val imgReq = androidx.compose.runtime.remember(cp, ctx) {
+                            ImageRequest.Builder(ctx)
+                                .data(File(cp))
+                                .size(Size(72, 72))
+                                .crossfade(true)
+                                .build()
+                        }
                         AsyncImage(
-                            model = File(cp),
+                            model = imgReq,
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -358,8 +366,9 @@ private fun TracksTab(tracks: List<Track>, currentId: String?, isPlaying: Boolea
                     Text(t.title, color = if (active) Accent else TextMain, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (!t.artist.isNullOrBlank()) Text(t.artist, color = TextMute, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                val durText = androidx.compose.runtime.remember(t.durationMs) { formatMs(t.durationMs) }
                 Text(
-                    formatMs(t.durationMs),
+                    durText,
                     color = TextMute, fontSize = 11.sp,
                     modifier = Modifier.width(34.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End

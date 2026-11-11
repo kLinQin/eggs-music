@@ -45,10 +45,13 @@ private val TIPS: List<TipSection> = listOf(
             TipBlock.Bullet("Import folder (rekursif) atau file satu-satu"),
             TipBlock.Bullet("Playlist per folder, bisa rename & hapus"),
             TipBlock.Bullet("Player lengkap: play/pause, next/prev, seek, volume, shuffle, repeat"),
-            TipBlock.Bullet("Equalizer 5-band (native) dengan preset"),
-            TipBlock.Bullet("Lirik otomatis (LRCLIB & lyrics.ovh) + terjemahan (Google/MyMemory)"),
-            TipBlock.Bullet("Lirik manual: tempel/ketik sendiri"),
-            TipBlock.Bullet("Cover art dari ID3 tag / cover.jpg di folder"),
+            TipBlock.Bullet("Equalizer 5-band (native) dengan preset, tersimpan antar restart"),
+            TipBlock.Bullet("Sleep timer, delete track, cover playlist"),
+            TipBlock.Bullet("Lirik otomatis: LRCLIB, lyrics.ovh, KuGou"),
+            TipBlock.Bullet("Lirik lokal: file .lrc/.txt di folder lagu, atau tag embedded di audio"),
+            TipBlock.Bullet("Lirik manual + terjemahan (Google/MyMemory)"),
+            TipBlock.Bullet("Deteksi instrumental, tandai \"tidak ada lirik\", priority source"),
+            TipBlock.Bullet("Cover art dari tag embedded / cover.jpg di folder"),
             TipBlock.Bullet("Media Session: kontrol dari notifikasi & lockscreen"),
             TipBlock.Hint("Semua data tersimpan lokal di HP. File audio asli tetap di folder Anda.", "info")
         )
@@ -132,24 +135,30 @@ private val TIPS: List<TipSection> = listOf(
     TipSection(
         "lyrics", "Lirik",
         listOf(
-            TipBlock.Heading("Lirik otomatis"),
-            TipBlock.Paragraph("Buka tab Lirik, pilih sumber lirik di toolbar bawah. Lirik sinkron (LRC) akan highlight baris aktif + auto-scroll."),
-            TipBlock.Heading("Sumber lirik"),
-            TipBlock.Bullet("LRCLIB — mendukung lirik sinkron + plain, default"),
+            TipBlock.Heading("Cara kerja"),
+            TipBlock.Paragraph("Saat lagu diputar, Egg Music mencari lirik berurutan: local .lrc/.txt → tag embedded → online. Urutan local vs embedded bisa diatur di Settings."),
+            TipBlock.Heading("Sumber lokal (offline)"),
+            TipBlock.Bullet(".lrc/.txt di folder lagu dengan nama sama (mis. song.mp3 + song.lrc)"),
+            TipBlock.Bullet("Tag lirik embedded di file audio (USLT/lyrics tag)"),
+            TipBlock.Bullet("Manual — tempel/ketik sendiri, tersimpan per track"),
+            TipBlock.Heading("Sumber online"),
+            TipBlock.Bullet("LRCLIB — lirik sinkron + plain, dengan fuzzy match fallback"),
             TipBlock.Bullet("lyrics.ovh — plain text saja, katalog luas"),
-            TipBlock.Bullet("Manual — tempel/ketik sendiri"),
-            TipBlock.Heading("Lirik manual"),
-            TipBlock.Bullet("Pilih sumber Manual → dialog editor muncul"),
-            TipBlock.Bullet("Tempel/ketik lirik. Format [mm:ss.xx] (LRC) didukung otomatis"),
+            TipBlock.Bullet("KuGou — katalog Asia, lirik sinkron"),
+            TipBlock.Paragraph("Kalau satu provider gagal, otomatis coba yang lain. Track yang tidak ditemukan di-cache 6 jam agar tidak request berulang."),
+            TipBlock.Heading("Fitur lanjutan"),
+            TipBlock.Bullet("Instrumental — judul dengan (Instrumental)/Off Vocal otomatis ditandai"),
+            TipBlock.Bullet("Tandai tidak ada lirik — tombol block; un-ignore lewat \"Batal tandai\""),
+            TipBlock.Bullet("Priority — pilih local dulu atau embedded dulu (Settings)"),
+            TipBlock.Bullet("Stretch timestamp — sesuaikan [length:] tag ke durasi aktual (nightcore/sped-up)"),
+            TipBlock.Bullet("Hide bar — sembunyikan bar Sumber/Translate di panel lirik"),
             TipBlock.Heading("Terjemahan"),
             TipBlock.Bullet("Plain — lirik asli"),
             TipBlock.Bullet("Indo — terjemahan Indonesia di bawah tiap baris"),
             TipBlock.Bullet("Inggris — terjemahan Inggris"),
-            TipBlock.Heading("Provider terjemahan"),
             TipBlock.Bullet("Google — kualitas terbaik, rate limit ketat"),
-            TipBlock.Bullet("MyMemory — gratis, stabil"),
-            TipBlock.Paragraph("Kalau Google limit, otomatis fallback ke MyMemory."),
-            TipBlock.Hint("Lirik tidak selalu ada — tergantung katalog API. Lagu indie/cover sering tidak ketemu.", "info")
+            TipBlock.Bullet("MyMemory — gratis, stabil, fallback otomatis"),
+            TipBlock.Hint("Lirik tidak selalu ada — tergantung katalog. Lagu indie/cover sering tidak ketemu.", "info")
         )
     ),
     TipSection(
@@ -191,9 +200,9 @@ private val TIPS: List<TipSection> = listOf(
             TipBlock.Heading("Berapa banyak lagu yang bisa disimpan?"),
             TipBlock.Paragraph("Tergantung storage HP. Karena tidak di-copy, praktis sebatas ruang folder musik Anda."),
             TipBlock.Heading("Bisakah pindah device?"),
-            TipBlock.Paragraph("File audio harus di-import ulang dari sumber aslinya. Playlist & lirik manual belum bisa dipindah otomatis di versi Android."),
+            TipBlock.Paragraph("File audio harus di-import ulang dari sumber aslinya. Playlist, lirik manual, dan cache lirik tersimpan di database Room lokal — belum ada fitur export/import otomatis."),
             TipBlock.Heading("Equalizer disimpan?"),
-            TipBlock.Paragraph("Belum dipersist antar restart di versi sekarang.")
+            TipBlock.Paragraph("Ya. Preset dan level EQ tersimpan antar restart.")
         )
     ),
     TipSection(

@@ -39,16 +39,6 @@ fun Header(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
-                modifier = Modifier.size(28.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Accent),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = com.eggs.musicplayer.R.drawable.ic_logo),
-                    contentDescription = "Egg Music",
-                    modifier = Modifier.size(20.dp)
-                )
-            }
             Text("Egg Music", color = TextMain, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
