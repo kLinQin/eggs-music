@@ -9,7 +9,8 @@ class SettingsRepository(context: Context) {
     fun load(): AppSettings = AppSettings(
         autoFetchLyrics = prefs.getBoolean(KEY_AUTO_LYRICS, true),
         enableLyricsOvh = prefs.getBoolean(KEY_LYRICS_OVH, false),
-        stretchLyricsDuration = prefs.getBoolean(KEY_STRETCH_LYRICS, true)
+        stretchLyricsDuration = prefs.getBoolean(KEY_STRETCH_LYRICS, true),
+        lyricsSourcePriority = prefs.getString(KEY_LYRICS_PRIORITY, "local") ?: "local"
     )
 
     fun save(s: AppSettings) {
@@ -17,6 +18,7 @@ class SettingsRepository(context: Context) {
             .putBoolean(KEY_AUTO_LYRICS, s.autoFetchLyrics)
             .putBoolean(KEY_LYRICS_OVH, s.enableLyricsOvh)
             .putBoolean(KEY_STRETCH_LYRICS, s.stretchLyricsDuration)
+            .putString(KEY_LYRICS_PRIORITY, s.lyricsSourcePriority)
             .apply()
     }
 
@@ -42,6 +44,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_AUTO_LYRICS = "autoFetchLyrics"
         private const val KEY_LYRICS_OVH = "enableLyricsOvh"
         private const val KEY_STRETCH_LYRICS = "stretchLyricsDuration"
+        private const val KEY_LYRICS_PRIORITY = "lyricsSourcePriority"
         private const val KEY_EQ_PRESET = "eqPreset"
         private const val KEY_EQ_LEVELS = "eqLevels"
         private const val KEY_VOLUME = "playerVolume"

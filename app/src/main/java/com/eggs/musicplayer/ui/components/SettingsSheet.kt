@@ -1,5 +1,11 @@
 package com.eggs.musicplayer.ui.components
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -43,6 +49,25 @@ fun SettingsSheet(
             }
             SettingSwitch("Aktifkan lyrics.ovh", settings.enableLyricsOvh) {
                 onChange(settings.copy(enableLyricsOvh = it))
+            }
+            SettingSwitch("Stretch timestamp lirik", settings.stretchLyricsDuration) {
+                onChange(settings.copy(stretchLyricsDuration = it))
+            }
+
+            Text("Prioritas sumber lirik", color = TextMute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+                listOf("local" to "Lokal", "embedded" to "Embedded").forEach { (key, label) ->
+                    val active = settings.lyricsSourcePriority == key
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (active) Accent else BgPanel)
+                            .clickable { onChange(settings.copy(lyricsSourcePriority = key)) }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(label, color = if (active) Color.Black else TextMute, fontSize = 12.sp)
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
             OutlinedButton(

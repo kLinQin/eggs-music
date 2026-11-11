@@ -23,6 +23,7 @@ import com.eggs.musicplayer.lyrics.LyricsOvhRepository
 import com.eggs.musicplayer.lyrics.LyricsKuGouRepository
 import com.eggs.musicplayer.lyrics.LocalLyricsRepository
 import com.eggs.musicplayer.lyrics.LyricsInstrumentalDetector
+import com.eggs.musicplayer.lyrics.EmbeddedLyricsReader
 import com.eggs.musicplayer.lyrics.LyricLine
 import com.eggs.musicplayer.lyrics.LyricsSearchItem
 import com.eggs.musicplayer.model.AppSettings
@@ -63,6 +64,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val lyricsOvhRepo = LyricsOvhRepository()
     private val localLyricsRepo = LocalLyricsRepository(app)
     private val lyricsKuGouRepo = LyricsKuGouRepository()
+    private val embeddedLyricsReader = EmbeddedLyricsReader(app)
     private val translateRepo = TranslateRepository()
     private val manualLyricsDao = db.manualLyricsDao()
     private val cacheDao = db.cacheDao()
@@ -172,12 +174,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 _lyrics.update { it.copy(isInstrumental = true, loading = false) }
                 return@launch
             }
-            val local = runCatching { localLyricsRepo.findSidecar(audioPath) }.getOrNull()
-            if (local != null) {
-                val localStretched = applyStretch(local, durationMs)
-                _lyrics.update { it.copy(provider = LyricsProvider.Local, result = localStretched, loading = false, error = null) }
-                if (local.lines.isNotEmpty()) maybeTranslate()
-                return@launch
+            val priority = _appSettings.value.lyricsSourcePriority
+            val tryLocal = {
+                val local = runCatching { localLyricsRepo.findSidecar(audioPath) }.getOrNull()
+                if (local != null) {
+                    val localStretched = applyStretch(local, durationMs)
+                    _lyrics.update { it.copy(provider = LyricsProvider.Local, result = localStretched, loading = false, error = null) }
+                    if (local.lines.isNotEmpty()) maybeTranslate()
+                }
+                local != null
+            }
+            val tryEmbedded = {
+                val embedded = runCatching { embeddedLyricsReader.read(audioPath) }.getOrNull()
+                if (embedded != null) {
+                    val embeddedStretched = applyStretch(embedded, durationMs)
+                    _lyrics.update { it.copy(provider = LyricsProvider.Local, result = embeddedStretched, loading = false, error = null) }
+                    if (embedded.lines.isNotEmpty()) maybeTranslate()
+                }
+                embedded != null
+            }
+            if (priority == "embedded") {
+                if (tryEmbedded()) return@launch
+                if (tryLocal()) return@launch
+            } else {
+                if (tryLocal()) return@launch
+                if (tryEmbedded()) return@launch
             }
             val st = _appSettings.value
             val provider = when {
@@ -273,6 +294,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val finalRes = res?.let { applyStretch(it, durationMs) }
         _lyrics.update { it.copy(loading = false, result = finalRes, error = if (finalRes == null) "Lirik tidak tersedia" else null) }
         if (res != null) maybeTranslate()
+    }
+
+    fun ignoreLyrics() {
+        val trackId = _lyrics.value.trackId ?: return
+        viewModelScope.launch {
+            runCatching {
+                cacheDao.upsertLyrics(LyricsCache(
+                    trackId = trackId,
+                    provider = "IGNORE",
+                    synced = false,
+                    plain = null,
+                    linesJson = "[]"
+                ))
+            }
+            _lyrics.update { it.copy(provider = null, result = null, isIgnored = true, error = "Lirik ditandai tidak tersedia", translations = emptyList()) }
+        }
+    }
+
+    fun removeIgnore() {
+        val trackId = _lyrics.value.trackId ?: return
+        viewModelScope.launch {
+            runCatching { cacheDao.deleteLyrics(trackId) }
+            _lyrics.update { it.copy(isIgnored = false, error = null) }
+        }
     }
 
     fun setLyricsProvider(provider: LyricsProvider) {

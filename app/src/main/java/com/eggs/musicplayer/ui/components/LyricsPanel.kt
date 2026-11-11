@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -44,7 +45,9 @@ fun LyricsPanel(
     onOpenManual: () -> Unit,
     onSearch: (String) -> Unit,
     onApplySearch: (Long) -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onIgnore: () -> Unit,
+    onRemoveIgnore: () -> Unit
 ) {
     var searchOpen by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
@@ -80,6 +83,11 @@ fun LyricsPanel(
             if (state.provider == LyricsProvider.Manual) {
                 IconButton(onClick = onOpenManual, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Edit, "Edit lirik manual", tint = TextMute, modifier = Modifier.size(18.dp))
+                }
+            }
+            if (!state.isIgnored) {
+                IconButton(onClick = onIgnore, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Block, "Tandai tidak ada lirik", tint = TextMute, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -150,6 +158,12 @@ fun LyricsPanel(
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
                 state.trackId == null -> CenterText("Pilih lagu untuk melihat lirik")
+                state.isInstrumental -> CenterText("🎵 Instrumental")
+                state.isIgnored -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Text("Lirik ditandai tidak tersedia", color = TextMute, fontSize = 13.sp)
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = onRemoveIgnore) { Text("Batal tandai", color = Accent, fontSize = 12.sp) }
+                }
                 state.loading -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     CircularProgressIndicator(color = Accent)
                     Spacer(Modifier.height(8.dp))
@@ -203,6 +217,7 @@ fun LyricsPanel(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     LyricsChip("LRCLIB", state.provider == LyricsProvider.Lrclib) { onSetProvider(LyricsProvider.Lrclib) }
                     LyricsChip("ovh", state.provider == LyricsProvider.LyricsOvh) { onSetProvider(LyricsProvider.LyricsOvh) }
+                    LyricsChip("KuGou", state.provider == LyricsProvider.KuGou) { onSetProvider(LyricsProvider.KuGou) }
                     LyricsChip("Manual", state.provider == LyricsProvider.Manual) { onSetProvider(LyricsProvider.Manual) }
                 }
             }

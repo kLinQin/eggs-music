@@ -60,7 +60,9 @@ fun MainView(
     onOpenManualLyrics: () -> Unit,
     onSearchLyrics: (String) -> Unit,
     onApplySearch: (Long) -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onIgnoreLyrics: () -> Unit,
+    onRemoveIgnoreLyrics: () -> Unit
 ) {
     var tab by remember { mutableStateOf(if (isMobile) MainTab.Playlist else MainTab.Tracks) }
     LaunchedEffect(isMobile) {
@@ -127,7 +129,9 @@ fun MainView(
                 onOpenManual = onOpenManualLyrics,
                 onSearch = onSearchLyrics,
                 onApplySearch = onApplySearch,
-                onSearchQueryChange = onSearchQueryChange
+                onSearchQueryChange = onSearchQueryChange,
+                onIgnore = onIgnoreLyrics,
+                onRemoveIgnore = onRemoveIgnoreLyrics
             )
             MainTab.Tips -> TipsScreen()
         }

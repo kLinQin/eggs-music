@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,7 +64,7 @@ fun Sidebar(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        if (pl.isSystem) Icons.Default.LibraryMusic else Icons.Default.QueueMusic,
+                        if (pl.isSystem) Icons.Default.LibraryMusic else Icons.AutoMirrored.Filled.QueueMusic,
                         null,
                         tint = if (current) Accent else TextMute,
                         modifier = Modifier.size(20.dp)

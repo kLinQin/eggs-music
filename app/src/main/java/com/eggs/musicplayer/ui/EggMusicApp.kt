@@ -114,7 +114,9 @@ fun EggMusicApp(
                                 onOpenManualLyrics = vm::openManualDialog,
                                 onSearchLyrics = { _ -> vm.searchLyricsNow() },
                                 onApplySearch = { id -> vm.applySearchResult(com.eggs.musicplayer.lyrics.LyricsSearchItem(id, "", "", "", 0, false, false)) },
-                                onSearchQueryChange = vm::updateSearchQuery
+                                onSearchQueryChange = vm::updateSearchQuery,
+                                onIgnoreLyrics = vm::ignoreLyrics,
+                                onRemoveIgnoreLyrics = vm::removeIgnore
                         )
                     }
                 }
